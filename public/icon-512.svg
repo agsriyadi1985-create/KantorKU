@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="brandGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#0171c7" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+    <filter id="shadow512" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#brandGrad512)" />
+  <!-- Glass accent -->
+  <rect x="40" y="40" width="432" height="190" rx="75" fill="#ffffff" fill-opacity="0.12" />
+  <!-- Letter K -->
+  <text x="256" y="355" font-size="290" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" filter="url(#shadow512)">K</text>
+  <!-- Accent dot -->
+  <circle cx="395" cy="365" r="26" fill="#38bdf8" />
+</svg>

@@ -63,11 +63,13 @@ const MainContent: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
-      <Sidebar />
-      <MobileNav isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      {isAdmin && <Sidebar />}
+      {isAdmin && (
+        <MobileNav isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      )}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
-        <main className="flex-1 p-3 sm:p-6 md:p-8 max-w-7xl w-full mx-auto">
+        <main className={`flex-1 ${isAdmin ? 'p-3 sm:p-6 md:p-8 max-w-7xl' : 'p-3 sm:p-4 max-w-lg'} w-full mx-auto`}>
           {renderActiveView()}
         </main>
       </div>
