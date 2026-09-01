@@ -143,6 +143,7 @@ export interface User {
   password?: string;
   nama: string;
   role: UserRole;
+  karyawanId?: string;
   isActive: boolean;
   lastLogin?: string;
   createdAt?: string;

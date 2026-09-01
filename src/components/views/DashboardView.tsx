@@ -19,6 +19,7 @@ import {
   CheckSquare,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal, getNamaBulan } from '../../utils/formatters';
+import { StaffPortalView } from './StaffPortalView';
 
 export const DashboardView: React.FC = () => {
   const {
@@ -29,7 +30,13 @@ export const DashboardView: React.FC = () => {
     taskList,
     setActiveTab,
     companyInfo,
+    currentUser,
   } = useApp();
+
+  // If user is Staff, render the dedicated Staff Mobile Portal matching the user's wireframe
+  if (currentUser?.role === 'Staff') {
+    return <StaffPortalView />;
+  }
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;

@@ -112,6 +112,7 @@ const mapUserFromDB = (row: Record<string, unknown>): User => ({
   password: (row.password as string) || '',
   nama: row.nama as string,
   role: (row.role as UserRole) || 'Staff',
+  karyawanId: (row.karyawan_id as string) || (row.karyawanId as string) || undefined,
   isActive: row.is_active !== false,
   lastLogin: row.last_login as string | undefined,
   createdAt: row.created_at as string | undefined,
