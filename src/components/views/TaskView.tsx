@@ -12,6 +12,7 @@ import {
   Calendar,
   Clock,
   User as UserIcon,
+  Users,
   CheckCircle2,
   AlertCircle,
   XCircle,
@@ -131,10 +132,43 @@ export const TaskView: React.FC = () => {
       return;
     }
 
-    if (editingTaskId) {
-      await updateTask(editingTaskId, formData);
+    if (formData.assignedTo === 'ALL') {
+      if (karyawanList.length === 0) {
+        alert('Belum ada data karyawan.');
+        return;
+      }
+
+      if (editingTaskId) {
+        const [firstEmp, ...restEmps] = karyawanList;
+        if (firstEmp) {
+          await updateTask(editingTaskId, {
+            ...formData,
+            assignedTo: firstEmp.id,
+            assignedToNama: firstEmp.nama,
+          });
+        }
+        for (const rest of restEmps) {
+          await addTask({
+            ...formData,
+            assignedTo: rest.id,
+            assignedToNama: rest.nama,
+          });
+        }
+      } else {
+        for (const emp of karyawanList) {
+          await addTask({
+            ...formData,
+            assignedTo: emp.id,
+            assignedToNama: emp.nama,
+          });
+        }
+      }
     } else {
-      await addTask(formData);
+      if (editingTaskId) {
+        await updateTask(editingTaskId, formData);
+      } else {
+        await addTask(formData);
+      }
     }
     setIsFullFormOpen(false);
   };
@@ -627,22 +661,43 @@ export const TaskView: React.FC = () => {
                 <select
                   value={formData.assignedTo}
                   onChange={(e) => {
-                    const emp = karyawanList.find((k) => k.id === e.target.value);
-                    setFormData({
-                      ...formData,
-                      assignedTo: e.target.value,
-                      assignedToNama: emp ? emp.nama : '',
-                    });
+                    const val = e.target.value;
+                    if (val === 'ALL') {
+                      setFormData({
+                        ...formData,
+                        assignedTo: 'ALL',
+                        assignedToNama: 'SEMUA KARYAWAN (ALL)',
+                      });
+                    } else {
+                      const emp = karyawanList.find((k) => k.id === val);
+                      setFormData({
+                        ...formData,
+                        assignedTo: val,
+                        assignedToNama: emp ? emp.nama : '',
+                      });
+                    }
                   }}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="">-- Pilih Staf Penanggung Jawab --</option>
+                  <option value="ALL" className="font-bold text-brand-700 bg-brand-50">
+                    📢 ALL - Semua Karyawan ({karyawanList.length} Orang)
+                  </option>
                   {karyawanList.map((k) => (
                     <option key={k.id} value={k.id}>
-                      {k.nama} ({k.jabatan})
+                      {k.nama} ({k.jabatan ? `${k.jabatan} - ` : ''}{k.nik})
                     </option>
                   ))}
                 </select>
+
+                {formData.assignedTo === 'ALL' && (
+                  <div className="mt-1.5 p-2 bg-brand-50 border border-brand-200 rounded-xl flex items-start gap-1.5 text-[11px] text-brand-800">
+                    <Users className="w-3.5 h-3.5 text-brand-600 shrink-0 mt-0.5" />
+                    <span>
+                      Tugas ini akan otomatis <strong>diterbitkan & di-push ke semua ({karyawanList.length}) karyawan</strong>.
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div>
