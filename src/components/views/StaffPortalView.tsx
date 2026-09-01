@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Send,
   MessageSquare,
+  RefreshCw,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal, getNamaBulan, normalizeNIK } from '../../utils/formatters';
 
@@ -23,6 +24,7 @@ export const StaffPortalView: React.FC = () => {
     currentUser,
     karyawanList,
     taskList,
+    fetchTasks,
     kasbonList,
     updateTaskStatus,
     addKasbon,
@@ -324,7 +326,10 @@ export const StaffPortalView: React.FC = () => {
         {/* Card TASK */}
         <button
           type="button"
-          onClick={() => setIsTaskModalOpen(true)}
+          onClick={() => {
+            fetchTasks();
+            setIsTaskModalOpen(true);
+          }}
           className="bg-white hover:bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
         >
           <div className="space-y-2">
@@ -404,12 +409,36 @@ export const StaffPortalView: React.FC = () => {
         subtitle={`Staf: ${activeKaryawan?.nama || 'Karyawan'}`}
         maxWidth="lg"
       >
+        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+          <span className="text-xs font-semibold text-slate-500">
+            {myTasks.length} Tugas Ditemukan
+          </span>
+          <button
+            type="button"
+            onClick={() => fetchTasks()}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-brand-600" />
+            <span>Segarkan</span>
+          </button>
+        </div>
+
         <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
           {myTasks.length === 0 ? (
-            <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-              <CheckSquare className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm font-bold text-slate-700">Belum ada tugas yang ditugaskan</p>
-              <p className="text-xs text-slate-400 mt-1">Admin belum membuat tugas untuk Anda.</p>
+            <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
+              <CheckSquare className="w-10 h-10 text-slate-300 mx-auto" />
+              <div>
+                <p className="text-sm font-bold text-slate-700">Belum ada tugas yang ditugaskan</p>
+                <p className="text-xs text-slate-400 mt-1">Admin belum membuat tugas untuk Anda atau data sedang disinkronkan.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => fetchTasks()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Cek & Segarkan Data Tugas</span>
+              </button>
             </div>
           ) : (
             myTasks.map((task) => (

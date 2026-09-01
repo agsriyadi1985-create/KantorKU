@@ -42,6 +42,7 @@ interface AppContextType {
 
   // Tasks (Tugas & Pekerjaan)
   taskList: Task[];
+  fetchTasks: () => Promise<void>;
   addTask: (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Task | null>;
   updateTask: (id: string, data: Partial<Task>) => Promise<void>;
   updateTaskStatus: (id: string, status: TaskStatus, catatanStaff?: string) => Promise<void>;
@@ -516,6 +517,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     init();
 
+    // Re-fetch on tab focus/visibility change (crucial for mobile when browser reconnects)
+    const handleSync = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTasks();
+        fetchKaryawan();
+        fetchKasbon();
+        fetchGaji();
+        fetchPengeluaran();
+        fetchUsers();
+      }
+    };
+
+    window.addEventListener('focus', handleSync);
+    document.addEventListener('visibilitychange', handleSync);
+
     // Realtime Subscriptions
     const channel = supabase
       .channel('kantorku-realtime')
@@ -529,6 +545,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .subscribe();
 
     return () => {
+      window.removeEventListener('focus', handleSync);
+      document.removeEventListener('visibilitychange', handleSync);
       supabase.removeChannel(channel);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1329,7 +1347,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       currentUser, login, logout, userList, addUser, updateUser, deleteUser,
       activeTab, setActiveTab, isLoading,
       companyInfo, updateCompanyInfo,
-      taskList, addTask, updateTask, updateTaskStatus, deleteTask, clearAllTasks,
+      taskList, fetchTasks, addTask, updateTask, updateTaskStatus, deleteTask, clearAllTasks,
       karyawanList, addKaryawan, updateKaryawan, deleteKaryawan, getKaryawanById,
       kasbonList, addKasbon, updateKasbon, deleteKasbon, bayarKasbonManual, getActiveKasbonByKaryawan,
       gajiList, addGaji, updateGaji, deleteGaji, markGajiAsPaid, getGajiById,
