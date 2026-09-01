@@ -7,7 +7,7 @@ import {
   angkaKeTerbilang,
 } from '../../utils/formatters';
 import { downloadElementAsPDF } from '../../utils/pdfGenerator';
-import { Printer, Download, CheckCircle, Shield, Building2, QrCode, Loader2 } from 'lucide-react';
+import { Printer, Download, CheckCircle, Shield, Loader2 } from 'lucide-react';
 
 interface SlipGajiModernProps {
   gaji: Gaji;
@@ -353,41 +353,15 @@ export const SlipGajiModern: React.FC<SlipGajiModernProps> = ({
 
         {/* 5. Catatan Tambahan (Jika Ada) */}
         {gaji.catatan && (
-          <div className="my-4 p-3 bg-slate-50 rounded-xl border border-slate-200/60 text-xs text-slate-600">
+          <div className="relative z-10 my-4 p-3 bg-slate-50 rounded-xl border border-slate-200/60 text-xs text-slate-600">
             <span className="font-semibold text-slate-800">Catatan Khusus:</span> {gaji.catatan}
           </div>
         )}
 
-        {/* 6. Signatures & Digital Verification Footer */}
-        <div className="relative z-10 mt-10 pt-6 border-t border-slate-200 grid grid-cols-3 gap-4 text-xs text-center">
-          <div>
-            <p className="text-slate-500 mb-16">Diterima Oleh Karyawan,</p>
-            <p className="font-bold text-slate-900 border-b border-slate-400 inline-block px-4 pb-1">
-              {karyawan.nama}
-            </p>
-            <p className="text-[10px] text-slate-400 mt-0.5">NIK: {karyawan.nik}</p>
-          </div>
-
-          <div className="flex flex-col items-center justify-center">
-            {/* Minimalist QR Mock for verification */}
-            <div className="p-2 border border-slate-200 rounded-xl bg-slate-50 inline-block mb-1">
-              <QrCode className="w-12 h-12 text-slate-700" />
-            </div>
-            <p className="text-[9px] text-slate-400 font-mono tracking-widest uppercase">
-              VALID DIGITALLY
-            </p>
-            <p className="text-[8px] text-slate-400">
-              Dicetak: {formatTanggal(gaji.tanggalCetak)}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-slate-500 mb-16">Disetujui & Dikeluarkan Oleh,</p>
-            <p className="font-bold text-slate-900 border-b border-slate-400 inline-block px-4 pb-1">
-              {companyInfo.financeName}
-            </p>
-            <p className="text-[10px] text-slate-400 mt-0.5">{companyInfo.financeTitle}</p>
-          </div>
+        {/* Footer Note */}
+        <div className="relative z-10 mt-6 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400">
+          <span>Dokumen slip gaji resmi diterbitkan secara digital oleh {companyInfo.name}</span>
+          <span className="font-mono">ID: {gaji.id}</span>
         </div>
       </div>
     </div>
