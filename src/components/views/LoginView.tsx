@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Lock, User, Eye, EyeOff, ShieldCheck, ArrowRight, Sparkles, Building2 } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ShieldCheck, ArrowRight, Building2 } from 'lucide-react';
 
 export const LoginView: React.FC = () => {
   const { login, companyInfo } = useApp();
@@ -30,12 +30,6 @@ export const LoginView: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillQuickCredentials = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    setErrorMessage(null);
   };
 
   return (
@@ -82,7 +76,7 @@ export const LoginView: React.FC = () => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Contoh: AGUS"
+                  placeholder="Masukkan username"
                   className="w-full pl-10 pr-4 py-3 bg-slate-800/70 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all uppercase"
                   autoFocus
                   required
@@ -109,7 +103,7 @@ export const LoginView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -119,7 +113,7 @@ export const LoginView: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3.5 px-4 bg-gradient-to-r from-brand-600 via-brand-500 to-sky-500 hover:from-brand-500 hover:to-sky-400 text-white font-bold rounded-xl shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] disabled:opacity-70 cursor-pointer text-sm"
+              className="w-full mt-3 py-3.5 px-4 bg-gradient-to-r from-brand-600 via-brand-500 to-sky-500 hover:from-brand-500 hover:to-sky-400 text-white font-bold rounded-xl shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] disabled:opacity-70 cursor-pointer text-sm"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -132,41 +126,8 @@ export const LoginView: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Demo Login Preset Buttons */}
-          <div className="mt-8 pt-6 border-t border-slate-800/80">
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-3 justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span className="font-medium">Akun Bawaan (Quick Login)</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => fillQuickCredentials('AGUS', '@Agustsus2')}
-                className="p-2.5 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/60 hover:border-brand-500/50 rounded-xl text-left transition-all group cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white group-hover:text-brand-400">AGUS</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-300 font-semibold">Admin</span>
-                </div>
-                <div className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">@Agustsus2</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fillQuickCredentials('STAFF', 'staff123')}
-                className="p-2.5 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/60 hover:border-sky-500/50 rounded-xl text-left transition-all group cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white group-hover:text-sky-400">STAFF</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-semibold">Staff</span>
-                </div>
-                <div className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">staff123</div>
-              </button>
-            </div>
-          </div>
-
           {/* Footer Security Note */}
-          <div className="mt-6 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+          <div className="mt-8 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             <span>Koneksi Aman & Terproteksi Hak Akses</span>
           </div>
