@@ -125,6 +125,22 @@ CREATE TABLE IF NOT EXISTS app_users (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 7. Tabel tasks (Manajemen Tugas / Pekerjaan)
+CREATE TABLE IF NOT EXISTS tasks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  judul TEXT NOT NULL,
+  deskripsi TEXT DEFAULT '',
+  assigned_to UUID REFERENCES karyawan(id) ON DELETE SET NULL,
+  assigned_to_nama TEXT NOT NULL DEFAULT '',
+  deadline DATE,
+  prioritas TEXT NOT NULL DEFAULT 'Sedang', -- 'Rendah' | 'Sedang' | 'Tinggi' | 'Mendesak'
+  status TEXT NOT NULL DEFAULT 'On Process', -- 'On Process' | 'Selesai' | 'Batal'
+  catatan_staff TEXT DEFAULT '',
+  created_by TEXT DEFAULT 'Admin',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Insert Default Admin User AGUS jika belum ada
 INSERT INTO app_users (username, password, nama, role, is_active)
 VALUES ('AGUS', '@Agustsus2', 'Agus Riyadi (Admin)', 'Admin', true)
@@ -144,6 +160,7 @@ ALTER TABLE kasbon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaji ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pengeluaran_rutin ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 
 -- Buat policy permissive (izinkan semua operasi)
 DO $$ BEGIN
@@ -164,6 +181,9 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   CREATE POLICY "Allow all" ON app_users FOR ALL USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "Allow all" ON tasks FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ================================================================
 -- Enable Realtime untuk semua tabel
@@ -174,6 +194,7 @@ ALTER TABLE kasbon REPLICA IDENTITY FULL;
 ALTER TABLE gaji REPLICA IDENTITY FULL;
 ALTER TABLE pengeluaran_rutin REPLICA IDENTITY FULL;
 ALTER TABLE app_users REPLICA IDENTITY FULL;
+ALTER TABLE tasks REPLICA IDENTITY FULL;
 
 -- Tambahkan ke Supabase Realtime publication
 DO $$ BEGIN
@@ -194,6 +215,9 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE app_users;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE tasks;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Selesai! Database KANTORKU siap digunakan.
-SELECT 'Schema KANTORKU v2.1 berhasil dibuat!' AS status;
+SELECT 'Schema KANTORKU v2.2 berhasil dibuat!' AS status;

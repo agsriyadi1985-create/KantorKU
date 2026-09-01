@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   UserCheck,
   LogOut,
+  CheckSquare,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -32,6 +33,12 @@ export const Sidebar: React.FC = () => {
       label: 'Dashboard',
       icon: <LayoutDashboard className="w-5 h-5" />,
       desc: 'Ringkasan & Analitik',
+    },
+    {
+      id: 'task',
+      label: 'Tugas (Task)',
+      icon: <CheckSquare className="w-5 h-5" />,
+      desc: 'Pencatatan & Status Progres',
     },
     {
       id: 'karyawan',

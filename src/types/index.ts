@@ -148,8 +148,27 @@ export interface User {
   createdAt?: string;
 }
 
+export type TaskStatus = 'On Process' | 'Selesai' | 'Batal';
+export type TaskPriority = 'Rendah' | 'Sedang' | 'Tinggi' | 'Mendesak';
+
+export interface Task {
+  id: string;
+  judul: string;
+  deskripsi: string;
+  assignedTo?: string; // Karyawan ID
+  assignedToNama: string; // Nama staf penanggung jawab
+  deadline: string; // YYYY-MM-DD
+  prioritas: TaskPriority;
+  status: TaskStatus;
+  catatanStaff?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export type ActiveTab =
   | 'dashboard'
+  | 'task'
   | 'karyawan'
   | 'gaji'
   | 'kasbon'

@@ -16,6 +16,7 @@ import {
   FileText,
   DollarSign,
   PieChart,
+  CheckSquare,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal, getNamaBulan } from '../../utils/formatters';
 
@@ -25,6 +26,7 @@ export const DashboardView: React.FC = () => {
     gajiList,
     kasbonList,
     pengeluaranList,
+    taskList,
     setActiveTab,
     companyInfo,
   } = useApp();
@@ -99,29 +101,36 @@ export const DashboardView: React.FC = () => {
         {/* Quick Actions in Banner */}
         <div className="relative z-10 mt-6 pt-5 border-t border-slate-800/80 flex flex-wrap gap-2.5">
           <button
-            onClick={() => setActiveTab('gaji')}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95"
+            onClick={() => setActiveTab('task')}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
           >
-            <Banknote className="w-4 h-4" />
+            <CheckSquare className="w-4 h-4" />
+            Tugas (Task)
+          </button>
+          <button
+            onClick={() => setActiveTab('gaji')}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+          >
+            <Banknote className="w-4 h-4 text-brand-400" />
             Buat Slip Gaji
           </button>
           <button
             onClick={() => setActiveTab('kasbon')}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl text-xs font-semibold transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl text-xs font-semibold transition-all cursor-pointer"
           >
             <CreditCard className="w-4 h-4 text-brand-400" />
             Catat Kasbon
           </button>
           <button
             onClick={() => setActiveTab('pengeluaran')}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl text-xs font-semibold transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl text-xs font-semibold transition-all cursor-pointer"
           >
             <Receipt className="w-4 h-4 text-emerald-400" />
-            Catat Pengeluaran Rutin
+            Catat Pengeluaran
           </button>
           <button
             onClick={() => setActiveTab('karyawan')}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl text-xs font-semibold transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl text-xs font-semibold transition-all cursor-pointer"
           >
             <Users className="w-4 h-4 text-sky-400" />
             Kelola Karyawan
@@ -459,7 +468,7 @@ export const DashboardView: React.FC = () => {
             </div>
             <button
               onClick={() => setActiveTab('pengeluaran')}
-              className="text-xs text-brand-600 font-semibold hover:underline"
+              className="text-xs text-brand-600 font-semibold hover:underline cursor-pointer"
             >
               Lihat Kwitansi
             </button>
@@ -493,6 +502,72 @@ export const DashboardView: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* 5. Active Tasks Overview Widget */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-brand-600" />
+              Tugas & Pekerjaan Berjalan (Task On Process)
+            </h3>
+            <p className="text-xs text-slate-500">
+              Pekerjaan yang saat ini sedang diproses oleh staf kantor
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveTab('task')}
+            className="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            Buka Menu Task
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {taskList.filter((t) => t.status === 'On Process').length === 0 ? (
+            <div className="col-span-full py-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+              <p className="text-xs text-slate-500 font-medium">
+                Semua tugas telah diselesaikan dengan baik!
+              </p>
+            </div>
+          ) : (
+            taskList
+              .filter((t) => t.status === 'On Process')
+              .slice(0, 3)
+              .map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => setActiveTab('task')}
+                  className="p-4 rounded-xl border border-slate-200/80 hover:border-brand-300 bg-slate-50/40 hover:bg-white transition-all cursor-pointer space-y-2 flex flex-col justify-between"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800 animate-pulse">
+                        On Process
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        Deadline: {formatTanggal(task.deadline)}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-slate-900 text-xs line-clamp-2">
+                      {task.judul}
+                    </h4>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    <span className="font-semibold text-slate-700 truncate max-w-[150px]">
+                      Staf: {task.assignedToNama}
+                    </span>
+                    <span className="text-brand-600 font-bold hover:underline">
+                      Detail &rarr;
+                    </span>
+                  </div>
+                </div>
+              ))
+          )}
         </div>
       </div>
     </div>

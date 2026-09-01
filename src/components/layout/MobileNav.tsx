@@ -12,6 +12,7 @@ import {
   ChevronRight,
   UserCheck,
   LogOut,
+  CheckSquare,
 } from 'lucide-react';
 
 interface MobileNavProps {
@@ -33,6 +34,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
     adminOnly?: boolean;
   }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { id: 'task', label: 'Tugas (Task)', icon: <CheckSquare className="w-5 h-5" /> },
     { id: 'karyawan', label: 'Karyawan', icon: <Users className="w-5 h-5" />, adminOnly: true },
     { id: 'gaji', label: 'Gaji & Payroll', icon: <Banknote className="w-5 h-5" /> },
     { id: 'kasbon', label: 'Kasbon Karyawan', icon: <CreditCard className="w-5 h-5" /> },

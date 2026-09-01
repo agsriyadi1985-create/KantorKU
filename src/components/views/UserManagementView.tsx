@@ -203,7 +203,7 @@ export const UserManagementView: React.FC = () => {
               <span className="text-slate-400 text-xs">(Akses Penuh)</span>
             </div>
             <p className="text-slate-300 text-xs leading-relaxed">
-              Dapat mengakses <strong>Semua Menu</strong>: Dashboard, Karyawan, Gaji, Kasbon, Pengeluaran Rutin, <strong>Manajemen User</strong>, dan <strong>Pengaturan Kantor</strong>.
+              Dapat mengakses <strong>Semua Menu</strong>: Dashboard, <strong>Tugas (Task)</strong>, Karyawan, Gaji, Kasbon, Pengeluaran Rutin, <strong>Manajemen User</strong>, dan <strong>Pengaturan Kantor</strong>.
             </p>
           </div>
 
@@ -216,7 +216,7 @@ export const UserManagementView: React.FC = () => {
               <span className="text-slate-400 text-xs">(Akses Terbatas)</span>
             </div>
             <p className="text-slate-300 text-xs leading-relaxed">
-              Hanya dapat mengakses menu: <strong>Dashboard, Gaji, Kasbon, dan Pengeluaran Rutin</strong>. (Menu Karyawan, Manajemen User & Pengaturan disembunyikan).
+              Dapat mengakses menu: <strong>Dashboard, Tugas (Task - edit status pekerjaan), Gaji, Kasbon, dan Pengeluaran Rutin</strong>. (Menu Karyawan, Manajemen User & Pengaturan disembunyikan).
             </p>
           </div>
         </div>
@@ -312,12 +312,12 @@ export const UserManagementView: React.FC = () => {
                         {user.role === 'Admin' ? (
                           <span className="text-emerald-700 font-medium flex items-center gap-1">
                             <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            Akses Penuh (7 Menu)
+                            Akses Penuh (8 Menu)
                           </span>
                         ) : (
                           <span className="text-slate-600 flex items-center gap-1">
                             <Check className="w-3.5 h-3.5 text-sky-600" />
-                            Dashboard, Gaji, Kasbon, Pengeluaran
+                            Dashboard, Task, Gaji, Kasbon, Pengeluaran
                           </span>
                         )}
                       </div>

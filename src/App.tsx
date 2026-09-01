@@ -7,6 +7,7 @@ import { ToastContainer } from './components/common/Toast';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { LoginView } from './components/views/LoginView';
 import { DashboardView } from './components/views/DashboardView';
+import { TaskView } from './components/views/TaskView';
 import { KaryawanView } from './components/views/KaryawanView';
 import { GajiView } from './components/views/GajiView';
 import { KasbonView } from './components/views/KasbonView';
@@ -40,6 +41,8 @@ const MainContent: React.FC = () => {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardView />;
+      case 'task':
+        return <TaskView />;
       case 'karyawan':
         return isAdmin ? <KaryawanView /> : <DashboardView />;
       case 'gaji':

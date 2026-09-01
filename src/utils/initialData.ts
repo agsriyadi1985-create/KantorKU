@@ -1,4 +1,4 @@
-import { CompanyInfo, Karyawan, Kasbon, Gaji, PengeluaranRutin, User } from '../types';
+import { CompanyInfo, Karyawan, Kasbon, Gaji, PengeluaranRutin, User, Task } from '../types';
 
 export const initialCompanyInfo: CompanyInfo = {
   name: 'PT. KANTORKU DIGITAL NUSANTARA',
@@ -292,6 +292,61 @@ export const initialUsers: User[] = [
     role: 'Staff',
     isActive: true,
     createdAt: '2026-09-01T00:00:00.000Z',
+  },
+];
+
+export const initialTasks: Task[] = [
+  {
+    id: 'task-01',
+    judul: 'Rekonsiliasi Slip Gaji dan Kasbon Karyawan Periode September',
+    deskripsi: 'Cek seluruh potongan kasbon aktif dan pastikan nominal THP sudah sesuai dengan rekap absensi dan tunjangan.',
+    assignedTo: 'emp-05',
+    assignedToNama: 'Siti Nurhaliza',
+    deadline: '2026-09-25',
+    prioritas: 'Tinggi',
+    status: 'On Process',
+    catatanStaff: 'Sedang mencocokkan data absensi dengan potongan kasbon cicilan.',
+    createdBy: 'Agus Riyadi (Admin)',
+    createdAt: '2026-09-02T08:00:00.000Z',
+  },
+  {
+    id: 'task-02',
+    judul: 'Pembayaran Tagihan Listrik PLN & Internet Kantor',
+    deskripsi: 'Lakukan pembayaran tagihan utilitas bulanan dan cetak kwitansi bukti pengeluaran untuk arsip finance.',
+    assignedTo: 'emp-02',
+    assignedToNama: 'Budi Santoso',
+    deadline: '2026-09-10',
+    prioritas: 'Mendesak',
+    status: 'Selesai',
+    catatanStaff: 'Sudah dibayarkan via transfer bank dan kwitansi telah dicetak.',
+    createdBy: 'Agus Riyadi (Admin)',
+    createdAt: '2026-09-01T09:30:00.000Z',
+  },
+  {
+    id: 'task-03',
+    judul: 'Penyusunan Laporan Pajak PPh 21 Triwulan 3',
+    deskripsi: 'Siapkan rekapitulasi SPT Masa PPh Pasal 21 untuk seluruh karyawan tetap dan kontrak periode Juli - September 2026.',
+    assignedTo: 'emp-05',
+    assignedToNama: 'Siti Nurhaliza',
+    deadline: '2026-09-30',
+    prioritas: 'Sedang',
+    status: 'On Process',
+    catatanStaff: '',
+    createdBy: 'Agus Riyadi (Admin)',
+    createdAt: '2026-09-02T10:15:00.000Z',
+  },
+  {
+    id: 'task-04',
+    judul: 'Maintenance Backup Database Supabase Mingguan',
+    deskripsi: 'Ekspor data transaksi, payroll, dan kwitansi ke format JSON untuk backup rutin server.',
+    assignedTo: 'emp-01',
+    assignedToNama: 'Ahmad Fauzi',
+    deadline: '2026-09-07',
+    prioritas: 'Sedang',
+    status: 'On Process',
+    catatanStaff: '',
+    createdBy: 'Agus Riyadi (Admin)',
+    createdAt: '2026-09-02T11:00:00.000Z',
   },
 ];
 

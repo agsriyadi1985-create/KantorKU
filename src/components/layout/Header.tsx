@@ -33,6 +33,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           title: 'Dashboard Overview',
           subtitle: 'Ringkasan performa finansial, karyawan, dan operasional kantor.',
         };
+      case 'task':
+        return {
+          title: 'Daftar Tugas & Pekerjaan (Task)',
+          subtitle: 'Pencatatan tugas tim, penugasan staf, dan pembaruan status pengerjaan.',
+        };
       case 'karyawan':
         return {
           title: 'Kelola Data Karyawan',
