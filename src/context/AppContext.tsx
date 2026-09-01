@@ -792,10 +792,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addTask = useCallback(async (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task | null> => {
     try {
       const now = new Date().toISOString();
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const validAssignedTo = (data.assignedTo && uuidRegex.test(data.assignedTo)) ? data.assignedTo : null;
+
       const { data: result, error } = await supabase.from('tasks').insert({
         judul: data.judul.trim(),
         deskripsi: data.deskripsi || '',
-        assigned_to: data.assignedTo || null,
+        assigned_to: validAssignedTo,
         assigned_to_nama: data.assignedToNama || '',
         deadline: data.deadline || null,
         prioritas: data.prioritas || 'Sedang',
@@ -807,7 +810,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }).select().single();
 
       if (error) {
-        // If DB table not migrated yet, fallback to local state
         console.warn('Supabase task insert fallback:', error);
         const newTask: Task = {
           id: generateId(),
@@ -830,7 +832,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (result) {
         const newTask = mapTaskFromDB(result as Record<string, unknown>);
-        setTaskList(prev => [newTask, ...prev]);
+        // Preserve original assignedTo in memory if it was a non-UUID ID like emp-06
+        if (!newTask.assignedTo && data.assignedTo) {
+          newTask.assignedTo = data.assignedTo;
+        }
+        setTaskList(prev => [newTask, ...prev.filter(t => t.id !== newTask.id)]);
         addToast('success', `Tugas "${data.judul}" berhasil dibuat & ditugaskan`);
         return newTask;
       }
@@ -845,10 +851,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const updateTask = useCallback(async (id: string, data: Partial<Task>) => {
     try {
       const now = new Date().toISOString();
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       const updateData: Record<string, unknown> = { updated_at: now };
       if (data.judul !== undefined) updateData.judul = data.judul.trim();
       if (data.deskripsi !== undefined) updateData.deskripsi = data.deskripsi;
-      if (data.assignedTo !== undefined) updateData.assigned_to = data.assignedTo || null;
+      if (data.assignedTo !== undefined) {
+        updateData.assigned_to = (data.assignedTo && uuidRegex.test(data.assignedTo)) ? data.assignedTo : null;
+      }
       if (data.assignedToNama !== undefined) updateData.assigned_to_nama = data.assignedToNama;
       if (data.deadline !== undefined) updateData.deadline = data.deadline || null;
       if (data.prioritas !== undefined) updateData.prioritas = data.prioritas;
@@ -860,7 +869,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.warn('Supabase update task fallback:', error);
         setTaskList(prev => prev.map(t => t.id === id ? { ...t, ...data, updatedAt: now } : t));
       } else if (result) {
-        setTaskList(prev => prev.map(t => t.id === id ? mapTaskFromDB(result as Record<string, unknown>) : t));
+        const updated = mapTaskFromDB(result as Record<string, unknown>);
+        if (!updated.assignedTo && data.assignedTo) {
+          updated.assignedTo = data.assignedTo;
+        }
+        setTaskList(prev => prev.map(t => t.id === id ? updated : t));
       }
       addToast('success', 'Rincian tugas berhasil diperbarui');
     } catch (err) {

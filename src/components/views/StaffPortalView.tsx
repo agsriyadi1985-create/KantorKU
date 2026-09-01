@@ -79,15 +79,51 @@ export const StaffPortalView: React.FC = () => {
     hour12: false,
   }).format(currentTime);
 
-  // ── 3. Tasks & Kasbon for this employee ──
-  const myTasks = activeKaryawan
-    ? taskList.filter(
-        (t) =>
-          t.assignedTo === activeKaryawan.id ||
-          t.assignedToNama.toLowerCase().includes(activeKaryawan.nama.toLowerCase()) ||
-          activeKaryawan.nama.toLowerCase().includes(t.assignedToNama.toLowerCase())
-      )
-    : [];
+  // ── 3. Tasks & Kasbon for this employee (Enhanced matching) ──
+  const myTasks = taskList.filter((t) => {
+    if (!t) return false;
+
+    // 1. If assigned to ALL / Semua Karyawan
+    if (
+      t.assignedTo === 'ALL' ||
+      t.assignedToNama?.toUpperCase().includes('ALL') ||
+      t.assignedToNama?.toLowerCase().includes('semua')
+    ) {
+      return true;
+    }
+
+    // 2. Match against activeKaryawan
+    if (activeKaryawan) {
+      if (t.assignedTo && t.assignedTo === activeKaryawan.id) return true;
+      if (t.assignedTo && normalizeNIK(t.assignedTo) === normalizeNIK(activeKaryawan.nik)) return true;
+
+      const taskName = (t.assignedToNama || '').trim().toLowerCase();
+      const empName = (activeKaryawan.nama || '').trim().toLowerCase();
+      if (taskName && empName) {
+        if (taskName.includes(empName) || empName.includes(taskName)) return true;
+        const taskFirst = taskName.split(' ')[0];
+        const empFirst = empName.split(' ')[0];
+        if (taskFirst && empFirst && taskFirst === empFirst && taskFirst.length > 2) return true;
+      }
+    }
+
+    // 3. Match against currentUser
+    if (currentUser) {
+      if (currentUser.karyawanId && t.assignedTo === currentUser.karyawanId) return true;
+      const userNormNIK = normalizeNIK(currentUser.username);
+      if (t.assignedTo && normalizeNIK(t.assignedTo) === userNormNIK) return true;
+      const userName = (currentUser.nama || '').trim().toLowerCase();
+      const taskName = (t.assignedToNama || '').trim().toLowerCase();
+      if (userName && taskName) {
+        if (taskName.includes(userName) || userName.includes(taskName)) return true;
+        const userFirst = userName.split(' ')[0];
+        const taskFirst = taskName.split(' ')[0];
+        if (userFirst && taskFirst && userFirst === taskFirst && userFirst.length > 2) return true;
+      }
+    }
+
+    return false;
+  });
 
   const onProcessCount = myTasks.filter((t) => t.status === 'On Process').length;
   const myKasbonList = kasbonList.filter((k) => k.karyawanId === activeKaryawan?.id);
