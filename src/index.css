@@ -33,7 +33,7 @@
   body {
     background: white !important;
     color: black !important;
-    font-size: 11pt !important;
+    font-size: 10pt !important;
   }
 
   .no-print {
@@ -53,9 +53,10 @@
     max-width: 100% !important;
   }
 
+  /* Ukuran Kertas: A4 Dibagi 2 Sama Besar (A5 Landscape 210mm x 148.5mm) */
   @page {
-    margin: 1cm;
-    size: auto;
+    margin: 6mm;
+    size: 210mm 148.5mm;
   }
 }
 

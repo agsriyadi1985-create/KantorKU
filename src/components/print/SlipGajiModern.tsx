@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Gaji, Karyawan, CompanyInfo } from '../../types';
 import {
   formatRupiah,
@@ -6,7 +6,8 @@ import {
   getNamaBulan,
   angkaKeTerbilang,
 } from '../../utils/formatters';
-import { Printer, Download, CheckCircle, Shield, Building2, QrCode } from 'lucide-react';
+import { downloadElementAsPDF } from '../../utils/pdfGenerator';
+import { Printer, Download, CheckCircle, Shield, Building2, QrCode, Loader2 } from 'lucide-react';
 
 interface SlipGajiModernProps {
   gaji: Gaji;
@@ -21,6 +22,19 @@ export const SlipGajiModern: React.FC<SlipGajiModernProps> = ({
   companyInfo,
   onClose,
 }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    setIsDownloading(true);
+    await downloadElementAsPDF('printable-slip', {
+      filename: `SlipGaji-${karyawan.nama.replace(/\s+/g, '_')}-${gaji.nomorSlip}.pdf`,
+      orientation: 'portrait',
+      format: 'a4',
+      marginMm: 6,
+    });
+    setIsDownloading(false);
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -31,7 +45,7 @@ export const SlipGajiModern: React.FC<SlipGajiModernProps> = ({
   return (
     <div className="flex flex-col items-center">
       {/* Action Toolbar (Hidden during print) */}
-      <div className="w-full max-w-3xl mb-4 flex items-center justify-between no-print bg-slate-900 text-white p-3.5 rounded-2xl shadow-lg">
+      <div className="w-full max-w-3xl mb-4 flex items-center justify-between no-print bg-slate-900 text-white p-3.5 rounded-2xl shadow-lg flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
           <span className="text-xs font-semibold text-slate-200">
@@ -42,14 +56,31 @@ export const SlipGajiModern: React.FC<SlipGajiModernProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              className="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Tutup
             </button>
           )}
           <button
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
+            className="flex items-center gap-2 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+          >
+            {isDownloading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Mengunduh PDF...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Unduh PDF
+              </>
+            )}
+          </button>
+          <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95"
+            className="flex items-center gap-2 px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             Cetak Slip Gaji
