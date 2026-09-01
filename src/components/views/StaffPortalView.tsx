@@ -17,8 +17,12 @@ import {
   Banknote,
   Phone,
   MapPin,
+  Eye,
+  FileText,
+  UserCheck,
+  Save,
 } from 'lucide-react';
-import { formatRupiah, formatTanggal, getNamaBulan, normalizeNIK } from '../../utils/formatters';
+import { formatRupiah, formatTanggal, formatDateTime, getNamaBulan, normalizeNIK } from '../../utils/formatters';
 
 const STATUS_OPTIONS: TaskStatus[] = ['On Process', 'Selesai', 'Batal'];
 
@@ -137,7 +141,7 @@ export const StaffPortalView: React.FC = () => {
   // ── 4. Modal States ──
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<TaskStatus>('On Process');
   const [catatanInput, setCatatanInput] = useState('');
 
@@ -150,18 +154,18 @@ export const StaffPortalView: React.FC = () => {
   const [isSubmittingKasbon, setIsSubmittingKasbon] = useState(false);
 
   // ── Handlers ──
-  const handleOpenEditStatus = (task: Task) => {
+  const handleOpenDetail = (task: Task) => {
     setSelectedTask(task);
     setNewStatus(task.status);
     setCatatanInput(task.catatanStaff || '');
-    setIsEditStatusOpen(true);
+    setIsDetailModalOpen(true);
   };
 
   const handleSaveStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTask) return;
     await updateTaskStatus(selectedTask.id, newStatus, catatanInput.trim());
-    setIsEditStatusOpen(false);
+    setIsDetailModalOpen(false);
   };
 
   const cicilanCalc = () => {
@@ -487,14 +491,17 @@ export const StaffPortalView: React.FC = () => {
                     </div>
                   </div>
                 )}
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-end">
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400">
+                    Oleh: {task.createdBy || 'Admin'}
+                  </span>
                   <button
                     type="button"
-                    onClick={() => handleOpenEditStatus(task)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+                    onClick={() => handleOpenDetail(task)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
                   >
-                    <Clock className="w-3 h-3" />
-                    Ubah Status
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>View / Detail</span>
                   </button>
                 </div>
               </div>
@@ -504,66 +511,144 @@ export const StaffPortalView: React.FC = () => {
       </Modal>
 
       {/* ═══════════════════════════════════════════════════
-          MODAL: UBAH STATUS PEKERJAAN
+          MODAL: DETAIL LENGKAP TUGAS & UBAH STATUS
       ═══════════════════════════════════════════════════ */}
       <Modal
-        isOpen={isEditStatusOpen}
-        onClose={() => setIsEditStatusOpen(false)}
-        title="Ubah Status Pekerjaan"
-        subtitle={selectedTask?.judul || ''}
-        maxWidth="md"
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        title="Detail Lengkap Tugas"
+        subtitle="Rincian penugasan pekerjaan & formulir pembaruan status"
+        maxWidth="lg"
       >
-        <form onSubmit={handleSaveStatus} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Status Pekerjaan *
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {STATUS_OPTIONS.map((st) => {
-                const isSelected = newStatus === st;
-                return (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setNewStatus(st)}
-                    className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      isSelected
-                        ? st === 'Selesai' ? 'bg-emerald-500 text-white border-emerald-600 shadow-md'
-                          : st === 'On Process' ? 'bg-sky-500 text-white border-sky-600 shadow-md'
-                          : 'bg-rose-500 text-white border-rose-600 shadow-md'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    {st === 'Selesai' && <CheckCircle2 className="w-4 h-4" />}
-                    {st === 'On Process' && <Clock className="w-4 h-4" />}
-                    {st === 'Batal' && <XCircle className="w-4 h-4" />}
-                    <span>{st}</span>
-                  </button>
-                );
-              })}
+        {selectedTask && (
+          <div className="space-y-4">
+            {/* Header: Judul & Badges */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  {getStatusBadge(selectedTask.status)}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200/80 text-slate-700">
+                    Prioritas: {selectedTask.prioritas}
+                  </span>
+                </div>
+                <span className="text-[11px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                  Deadline: {formatTanggal(selectedTask.deadline)}
+                </span>
+              </div>
+              <h3 className="text-base font-black text-slate-900 leading-snug">
+                {selectedTask.judul}
+              </h3>
             </div>
+
+            {/* Informasi Detail Penugasan */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-white p-3.5 rounded-2xl border border-slate-100 text-xs">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                  Ditugaskan Kepada
+                </span>
+                <p className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
+                  <UserCheck className="w-3.5 h-3.5 text-brand-600" />
+                  <span>{selectedTask.assignedToNama || activeKaryawan?.nama || 'Petugas'}</span>
+                </p>
+              </div>
+
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                  Dibuat Oleh (Admin)
+                </span>
+                <p className="font-bold text-slate-800 text-[11px]">
+                  {selectedTask.createdBy || 'Agus Riyadi (Admin)'}
+                </p>
+              </div>
+
+              <div className="sm:col-span-2 pt-2 border-t border-slate-100 space-y-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                  Waktu Tugas Diinput Admin
+                </span>
+                <p className="font-mono font-bold text-slate-800 text-[11px] flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-sky-600" />
+                  <span>{formatDateTime(selectedTask.createdAt)}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Deskripsi / Instruksi Pekerjaan */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-brand-600" />
+                <span>Deskripsi & Instruksi Pekerjaan:</span>
+              </span>
+              <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap pl-1">
+                {selectedTask.deskripsi ? selectedTask.deskripsi : 'Tidak ada instruksi tambahan dari admin.'}
+              </p>
+            </div>
+
+            {/* Form Ubah Status Pekerjaan */}
+            <form onSubmit={handleSaveStatus} className="space-y-3 pt-3 border-t border-slate-200">
+              <div>
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
+                  Ubah Status Pekerjaan Ini *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {STATUS_OPTIONS.map((st) => {
+                    const isSelected = newStatus === st;
+                    return (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => setNewStatus(st)}
+                        className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                          isSelected
+                            ? st === 'Selesai'
+                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-md ring-2 ring-emerald-300'
+                              : st === 'On Process'
+                              ? 'bg-sky-600 text-white border-sky-700 shadow-md ring-2 ring-sky-300'
+                              : 'bg-rose-600 text-white border-rose-700 shadow-md ring-2 ring-rose-300'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {st === 'Selesai' && <CheckCircle2 className="w-4 h-4" />}
+                        {st === 'On Process' && <Clock className="w-4 h-4" />}
+                        {st === 'Batal' && <XCircle className="w-4 h-4" />}
+                        <span>{st}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Catatan Progres / Keterangan Petugas (Opsional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={catatanInput}
+                  onChange={(e) => setCatatanInput(e.target.value)}
+                  placeholder="Contoh: Pekerjaan telah selesai dikerjakan dan berkas sudah dikirim..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Simpan Perubahan Status</span>
+                </button>
+              </div>
+            </form>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan Progres (Opsional)</label>
-            <textarea
-              rows={3}
-              value={catatanInput}
-              onChange={(e) => setCatatanInput(e.target.value)}
-              placeholder="Contoh: Pekerjaan sudah 100% selesai..."
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-            <button type="button" onClick={() => setIsEditStatusOpen(false)}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">
-              Batal
-            </button>
-            <button type="submit"
-              className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md active:scale-95">
-              Simpan Status
-            </button>
-          </div>
-        </form>
+        )}
       </Modal>
 
       {/* ═══════════════════════════════════════════════════

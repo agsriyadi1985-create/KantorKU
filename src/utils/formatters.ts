@@ -156,3 +156,27 @@ export const normalizeNIK = (str: string | undefined | null): string => {
   if (!str) return '';
   return str.replace(/[^A-Z0-9]/gi, '').toUpperCase();
 };
+
+// Format tanggal dan jam lengkap standar Indonesia
+export const formatDateTime = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const datePart = new Intl.DateTimeFormat('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(d);
+    const timePart = new Intl.DateTimeFormat('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(d);
+    return `${datePart}, ${timePart} WIB`;
+  } catch {
+    return dateStr;
+  }
+};
+
