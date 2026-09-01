@@ -227,6 +227,7 @@ const mapTaskFromDB = (row: Record<string, unknown>): Task => ({
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const SESSION_STORAGE_KEY = 'kantorku_auth_session';
+const TASKS_STORAGE_KEY = 'kantorku_tasks_data';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Current user state with local session persistence
@@ -244,7 +245,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(initialCompanyInfo);
   const [userList, setUserList] = useState<User[]>([]);
-  const [taskList, setTaskList] = useState<Task[]>([]);
+  const [taskList, setTaskList] = useState<Task[]>(() => {
+    try {
+      const saved = localStorage.getItem(TASKS_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [karyawanList, setKaryawanList] = useState<Karyawan[]>([]);
   const [kasbonList, setKasbonList] = useState<Kasbon[]>([]);
   const [gajiList, setGajiList] = useState<Gaji[]>([]);
@@ -266,12 +274,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
       if (!error && data) {
-        setTaskList(data.map(r => mapTaskFromDB(r as Record<string, unknown>)));
-      } else {
-        setTaskList(initialTasks);
+        const mapped = data.map(r => mapTaskFromDB(r as Record<string, unknown>));
+        setTaskList(mapped);
+        try {
+          localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(mapped));
+        } catch {
+          // ignore
+        }
+      } else if (error) {
+        console.warn('fetchTasks fallback to localStorage cache:', error.message);
+        try {
+          const saved = localStorage.getItem(TASKS_STORAGE_KEY);
+          if (saved) {
+            setTaskList(JSON.parse(saved));
+          }
+        } catch {
+          // ignore
+        }
       }
-    } catch {
-      setTaskList(initialTasks);
+    } catch (err) {
+      console.warn('fetchTasks catch fallback to localStorage:', err);
+      try {
+        const saved = localStorage.getItem(TASKS_STORAGE_KEY);
+        if (saved) {
+          setTaskList(JSON.parse(saved));
+        }
+      } catch {
+        // ignore
+      }
     }
   }, []);
   const fetchUsers = useCallback(async () => {
@@ -807,6 +837,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // ============================================================
   // TASKS (TUGAS & PEKERJAAN)
   // ============================================================
+  // ============================================================
+  // TASKS (TUGAS & PEKERJAAN)
+  // ============================================================
   const addTask = useCallback(async (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task | null> => {
     try {
       const now = new Date().toISOString();
@@ -827,38 +860,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updated_at: now,
       }).select().single();
 
-      if (error) {
-        console.warn('Supabase task insert fallback:', error);
-        const newTask: Task = {
-          id: generateId(),
-          judul: data.judul,
-          deskripsi: data.deskripsi || '',
-          assignedTo: data.assignedTo,
-          assignedToNama: data.assignedToNama,
-          deadline: data.deadline,
-          prioritas: data.prioritas,
-          status: data.status,
-          catatanStaff: data.catatanStaff || '',
-          createdBy: data.createdBy || currentUser?.nama || 'Admin',
-          createdAt: now,
-          updatedAt: now,
-        };
-        setTaskList(prev => [newTask, ...prev]);
-        addToast('success', `Tugas "${data.judul}" berhasil dicatat`);
-        return newTask;
+      const newTask: Task = result
+        ? mapTaskFromDB(result as Record<string, unknown>)
+        : {
+            id: generateId(),
+            judul: data.judul,
+            deskripsi: data.deskripsi || '',
+            assignedTo: data.assignedTo,
+            assignedToNama: data.assignedToNama,
+            deadline: data.deadline,
+            prioritas: data.prioritas,
+            status: data.status,
+            catatanStaff: data.catatanStaff || '',
+            createdBy: data.createdBy || currentUser?.nama || 'Admin',
+            createdAt: now,
+            updatedAt: now,
+          };
+
+      if (!newTask.assignedTo && data.assignedTo) {
+        newTask.assignedTo = data.assignedTo;
       }
 
-      if (result) {
-        const newTask = mapTaskFromDB(result as Record<string, unknown>);
-        // Preserve original assignedTo in memory if it was a non-UUID ID like emp-06
-        if (!newTask.assignedTo && data.assignedTo) {
-          newTask.assignedTo = data.assignedTo;
+      setTaskList(prev => {
+        const updated = [newTask, ...prev.filter(t => t.id !== newTask.id)];
+        try {
+          localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // ignore
         }
-        setTaskList(prev => [newTask, ...prev.filter(t => t.id !== newTask.id)]);
-        addToast('success', `Tugas "${data.judul}" berhasil dibuat & ditugaskan`);
-        return newTask;
+        return updated;
+      });
+
+      if (error) {
+        console.warn('Supabase task insert fallback to local storage:', error.message);
       }
-      return null;
+      addToast('success', `Tugas "${data.judul}" berhasil disimpan & ditugaskan`);
+      return newTask;
     } catch (err) {
       console.error(err);
       addToast('error', 'Gagal menambahkan tugas');
@@ -885,14 +922,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const { data: result, error } = await supabase.from('tasks').update(updateData).eq('id', id).select().single();
       if (error) {
         console.warn('Supabase update task fallback:', error);
-        setTaskList(prev => prev.map(t => t.id === id ? { ...t, ...data, updatedAt: now } : t));
-      } else if (result) {
-        const updated = mapTaskFromDB(result as Record<string, unknown>);
-        if (!updated.assignedTo && data.assignedTo) {
-          updated.assignedTo = data.assignedTo;
-        }
-        setTaskList(prev => prev.map(t => t.id === id ? updated : t));
       }
+
+      setTaskList(prev => {
+        const updated = prev.map(t => {
+          if (t.id !== id) return t;
+          if (result) {
+            const mapped = mapTaskFromDB(result as Record<string, unknown>);
+            if (!mapped.assignedTo && data.assignedTo) mapped.assignedTo = data.assignedTo;
+            return mapped;
+          }
+          return { ...t, ...data, updatedAt: now };
+        });
+        try {
+          localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
+
       addToast('success', 'Rincian tugas berhasil diperbarui');
     } catch (err) {
       console.error(err);
@@ -914,15 +963,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const { data: result, error } = await supabase.from('tasks').update(updatePayload).eq('id', id).select().single();
       if (error) {
         console.warn('Supabase update task status fallback:', error);
-        setTaskList(prev => prev.map(t => t.id === id ? {
-          ...t,
-          status,
-          catatanStaff: catatanStaff !== undefined ? catatanStaff : t.catatanStaff,
-          updatedAt: now,
-        } : t));
-      } else if (result) {
-        setTaskList(prev => prev.map(t => t.id === id ? mapTaskFromDB(result as Record<string, unknown>) : t));
       }
+
+      setTaskList(prev => {
+        const updated = prev.map(t => {
+          if (t.id !== id) return t;
+          if (result) return mapTaskFromDB(result as Record<string, unknown>);
+          return {
+            ...t,
+            status,
+            catatanStaff: catatanStaff !== undefined ? catatanStaff : t.catatanStaff,
+            updatedAt: now,
+          };
+        });
+        try {
+          localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
+
       addToast('success', `Status pekerjaan berhasil diubah menjadi "${status}"`);
     } catch (err) {
       console.error(err);
@@ -936,7 +997,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (error) {
         console.warn('Supabase delete task fallback:', error);
       }
-      setTaskList(prev => prev.filter(t => t.id !== id));
+      setTaskList(prev => {
+        const updated = prev.filter(t => t.id !== id);
+        try {
+          localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
       addToast('info', 'Tugas telah dihapus');
     } catch (err) {
       console.error(err);
@@ -951,10 +1020,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.warn('Supabase clear all tasks fallback:', error);
       }
       setTaskList([]);
+      try {
+        localStorage.removeItem(TASKS_STORAGE_KEY);
+      } catch {
+        // ignore
+      }
       addToast('info', 'Seluruh daftar tugas telah dibersihkan');
     } catch (err) {
       console.error(err);
       setTaskList([]);
+      try {
+        localStorage.removeItem(TASKS_STORAGE_KEY);
+      } catch {
+        // ignore
+      }
       addToast('info', 'Seluruh daftar tugas telah dibersihkan');
     }
   }, [addToast]);
