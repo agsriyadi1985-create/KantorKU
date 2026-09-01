@@ -1,4 +1,4 @@
-import { CompanyInfo, Karyawan, Kasbon, Gaji, PengeluaranRutin } from '../types';
+import { CompanyInfo, Karyawan, Kasbon, Gaji, PengeluaranRutin, User } from '../types';
 
 export const initialCompanyInfo: CompanyInfo = {
   name: 'PT. KANTORKU DIGITAL NUSANTARA',
@@ -272,3 +272,25 @@ export const initialPengeluaran: PengeluaranRutin[] = [
     catatan: 'Kebutuhan pantry bulanan',
   },
 ];
+
+export const initialUsers: User[] = [
+  {
+    id: 'user-01',
+    username: 'AGUS',
+    password: '@Agustsus2',
+    nama: 'Agus Riyadi (Admin)',
+    role: 'Admin',
+    isActive: true,
+    createdAt: '2026-09-01T00:00:00.000Z',
+  },
+  {
+    id: 'user-02',
+    username: 'STAFF',
+    password: 'staff123',
+    nama: 'Petugas Keuangan',
+    role: 'Staff',
+    isActive: true,
+    createdAt: '2026-09-01T00:00:00.000Z',
+  },
+];
+

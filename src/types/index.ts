@@ -134,4 +134,25 @@ export interface CompanyInfo {
   logoText: string;
 }
 
-export type ActiveTab = 'dashboard' | 'karyawan' | 'gaji' | 'kasbon' | 'pengeluaran' | 'pengaturan';
+export type UserRole = 'Admin' | 'Staff';
+
+export interface User {
+  id: string;
+  username: string;
+  password?: string;
+  nama: string;
+  role: UserRole;
+  isActive: boolean;
+  lastLogin?: string;
+  createdAt?: string;
+}
+
+export type ActiveTab =
+  | 'dashboard'
+  | 'karyawan'
+  | 'gaji'
+  | 'kasbon'
+  | 'pengeluaran'
+  | 'users'
+  | 'pengaturan';
+

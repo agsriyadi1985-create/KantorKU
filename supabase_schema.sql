@@ -1,5 +1,5 @@
 -- ================================================================
--- KANTORKU - Supabase Database Schema v2.0
+-- KANTORKU - Supabase Database Schema v2.1 (Include User Management)
 -- Jalankan script ini di: Supabase Dashboard → SQL Editor → Run
 -- ================================================================
 
@@ -113,6 +113,28 @@ CREATE TABLE IF NOT EXISTS pengeluaran_rutin (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 6. Tabel app_users (Manajemen User & Hak Akses)
+CREATE TABLE IF NOT EXISTS app_users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  nama TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'Staff', -- 'Admin' | 'Staff'
+  is_active BOOLEAN DEFAULT true,
+  last_login TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert Default Admin User AGUS jika belum ada
+INSERT INTO app_users (username, password, nama, role, is_active)
+VALUES ('AGUS', '@Agustsus2', 'Agus Riyadi (Admin)', 'Admin', true)
+ON CONFLICT (username) DO NOTHING;
+
+-- Insert Default Staff User jika belum ada
+INSERT INTO app_users (username, password, nama, role, is_active)
+VALUES ('STAFF', 'staff123', 'Petugas Keuangan', 'Staff', true)
+ON CONFLICT (username) DO NOTHING;
+
 -- ================================================================
 -- Enable Row Level Security (RLS) dengan akses penuh untuk anon
 -- ================================================================
@@ -121,6 +143,7 @@ ALTER TABLE karyawan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kasbon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaji ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pengeluaran_rutin ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
 
 -- Buat policy permissive (izinkan semua operasi)
 DO $$ BEGIN
@@ -138,6 +161,9 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   CREATE POLICY "Allow all" ON pengeluaran_rutin FOR ALL USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY "Allow all" ON app_users FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ================================================================
 -- Enable Realtime untuk semua tabel
@@ -147,6 +173,7 @@ ALTER TABLE karyawan REPLICA IDENTITY FULL;
 ALTER TABLE kasbon REPLICA IDENTITY FULL;
 ALTER TABLE gaji REPLICA IDENTITY FULL;
 ALTER TABLE pengeluaran_rutin REPLICA IDENTITY FULL;
+ALTER TABLE app_users REPLICA IDENTITY FULL;
 
 -- Tambahkan ke Supabase Realtime publication
 DO $$ BEGIN
@@ -164,6 +191,9 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE pengeluaran_rutin;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE app_users;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Selesai! Database KANTORKU siap digunakan.
-SELECT 'Schema KANTORKU berhasil dibuat!' AS status;
+SELECT 'Schema KANTORKU v2.1 berhasil dibuat!' AS status;

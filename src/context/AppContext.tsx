@@ -3,13 +3,14 @@ import { supabase } from '../lib/supabase';
 import {
   Karyawan, StatusKaryawan,
   Kasbon, SkemaKasbon, StatusKasbon, RiwayatPembayaranKasbon,
-  Gaji, StatusGaji, KomponenPendapatan, KomponenPotongan,
+  Gaji, StatusGaji,
   PengeluaranRutin, KategoriPengeluaran, MetodeBayar,
   CompanyInfo,
   ActiveTab,
+  User, UserRole,
 } from '../types';
 import {
-  initialCompanyInfo, initialKaryawan, initialKasbon, initialGaji, initialPengeluaran,
+  initialCompanyInfo, initialKaryawan, initialKasbon, initialGaji, initialPengeluaran, initialUsers,
 } from '../utils/initialData';
 import { generateId, generateKodeSlip, generateKodeKasbon, generateKodeKwitansi } from '../utils/formatters';
 
@@ -20,36 +21,60 @@ export interface ToastMessage {
 }
 
 interface AppContextType {
+  // Auth & Session
+  currentUser: User | null;
+  login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  logout: () => void;
+  userList: User[];
+  addUser: (data: Omit<User, 'id' | 'createdAt' | 'lastLogin'>) => Promise<boolean>;
+  updateUser: (id: string, data: Partial<User>) => Promise<boolean>;
+  deleteUser: (id: string) => Promise<boolean>;
+
+  // Navigation
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   isLoading: boolean;
+
+  // Company
   companyInfo: CompanyInfo;
   updateCompanyInfo: (info: Partial<CompanyInfo>) => Promise<void>;
+
+  // Karyawan
   karyawanList: Karyawan[];
   addKaryawan: (data: Omit<Karyawan, 'id'>) => Promise<void>;
   updateKaryawan: (id: string, data: Partial<Karyawan>) => Promise<void>;
   deleteKaryawan: (id: string) => Promise<void>;
   getKaryawanById: (id: string) => Karyawan | undefined;
+
+  // Kasbon
   kasbonList: Kasbon[];
   addKasbon: (data: Omit<Kasbon, 'id' | 'nomorKasbon' | 'sisaPinjaman' | 'sudahDibayar' | 'status' | 'riwayatPembayaran'>) => Promise<void>;
   updateKasbon: (id: string, data: Partial<Kasbon>) => Promise<void>;
   deleteKasbon: (id: string) => Promise<void>;
   bayarKasbonManual: (id: string, nominal: number, keterangan: string) => Promise<void>;
   getActiveKasbonByKaryawan: (karyawanId: string) => Kasbon | undefined;
+
+  // Gaji
   gajiList: Gaji[];
   addGaji: (gaji: Omit<Gaji, 'id' | 'nomorSlip' | 'tanggalCetak'>) => Promise<Gaji | null>;
   updateGaji: (id: string, data: Partial<Gaji>) => Promise<void>;
   deleteGaji: (id: string) => Promise<void>;
   markGajiAsPaid: (id: string) => Promise<void>;
   getGajiById: (id: string) => Gaji | undefined;
+
+  // Pengeluaran
   pengeluaranList: PengeluaranRutin[];
   addPengeluaran: (data: Omit<PengeluaranRutin, 'id' | 'nomorKwitansi'>) => Promise<PengeluaranRutin | null>;
   updatePengeluaran: (id: string, data: Partial<PengeluaranRutin>) => Promise<void>;
   deletePengeluaran: (id: string) => Promise<void>;
   getPengeluaranById: (id: string) => PengeluaranRutin | undefined;
+
+  // Toast
   toasts: ToastMessage[];
   addToast: (type: ToastMessage['type'], message: string) => void;
   removeToast: (id: string) => void;
+
+  // Utilities
   exportDataJSON: () => Promise<void>;
   importDataJSON: (jsonString: string) => Promise<boolean>;
   resetToDemoData: () => Promise<void>;
@@ -70,6 +95,17 @@ const mapCompanyInfoFromDB = (row: Record<string, unknown>): CompanyInfo => ({
   financeName: (row.finance_name as string) || '',
   financeTitle: (row.finance_title as string) || '',
   logoText: (row.logo_text as string) || 'KANTORKU',
+});
+
+const mapUserFromDB = (row: Record<string, unknown>): User => ({
+  id: row.id as string,
+  username: row.username as string,
+  password: (row.password as string) || '',
+  nama: row.nama as string,
+  role: (row.role as UserRole) || 'Staff',
+  isActive: row.is_active !== false,
+  lastLogin: row.last_login as string | undefined,
+  createdAt: row.created_at as string | undefined,
 });
 
 const mapKaryawanFromDB = (row: Record<string, unknown>): Karyawan => ({
@@ -163,11 +199,24 @@ const mapPengeluaranFromDB = (row: Record<string, unknown>): PengeluaranRutin =>
 // ============================================================
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const SESSION_STORAGE_KEY = 'kantorku_auth_session';
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Current user state with local session persistence
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(initialCompanyInfo);
+  const [userList, setUserList] = useState<User[]>([]);
   const [karyawanList, setKaryawanList] = useState<Karyawan[]>([]);
   const [kasbonList, setKasbonList] = useState<Kasbon[]>([]);
   const [gajiList, setGajiList] = useState<Gaji[]>([]);
@@ -184,30 +233,64 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // ── Individual Fetch Functions ──────────────────────────────
+  // ── Fetch Functions ─────────────────────────────────────────
+  const fetchUsers = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('app_users').select('*').order('created_at', { ascending: true });
+      if (!error && data) {
+        setUserList(data.map(r => mapUserFromDB(r as Record<string, unknown>)));
+      } else {
+        // Fallback local initial users if table not ready yet
+        setUserList(initialUsers);
+      }
+    } catch {
+      setUserList(initialUsers);
+    }
+  }, []);
+
   const fetchCompany = useCallback(async () => {
-    const { data } = await supabase.from('company_info').select('*').limit(1).maybeSingle();
-    if (data) setCompanyInfo(mapCompanyInfoFromDB(data as Record<string, unknown>));
+    try {
+      const { data } = await supabase.from('company_info').select('*').limit(1).maybeSingle();
+      if (data) setCompanyInfo(mapCompanyInfoFromDB(data as Record<string, unknown>));
+    } catch {
+      // keep initial
+    }
   }, []);
 
   const fetchKaryawan = useCallback(async () => {
-    const { data, error } = await supabase.from('karyawan').select('*').order('created_at', { ascending: false });
-    if (!error && data) setKaryawanList(data.map(r => mapKaryawanFromDB(r as Record<string, unknown>)));
+    try {
+      const { data, error } = await supabase.from('karyawan').select('*').order('created_at', { ascending: false });
+      if (!error && data) setKaryawanList(data.map(r => mapKaryawanFromDB(r as Record<string, unknown>)));
+    } catch {
+      // ignore
+    }
   }, []);
 
   const fetchKasbon = useCallback(async () => {
-    const { data, error } = await supabase.from('kasbon').select('*').order('created_at', { ascending: false });
-    if (!error && data) setKasbonList(data.map(r => mapKasbonFromDB(r as Record<string, unknown>)));
+    try {
+      const { data, error } = await supabase.from('kasbon').select('*').order('created_at', { ascending: false });
+      if (!error && data) setKasbonList(data.map(r => mapKasbonFromDB(r as Record<string, unknown>)));
+    } catch {
+      // ignore
+    }
   }, []);
 
   const fetchGaji = useCallback(async () => {
-    const { data, error } = await supabase.from('gaji').select('*').order('created_at', { ascending: false });
-    if (!error && data) setGajiList(data.map(r => mapGajiFromDB(r as Record<string, unknown>)));
+    try {
+      const { data, error } = await supabase.from('gaji').select('*').order('created_at', { ascending: false });
+      if (!error && data) setGajiList(data.map(r => mapGajiFromDB(r as Record<string, unknown>)));
+    } catch {
+      // ignore
+    }
   }, []);
 
   const fetchPengeluaran = useCallback(async () => {
-    const { data, error } = await supabase.from('pengeluaran_rutin').select('*').order('created_at', { ascending: false });
-    if (!error && data) setPengeluaranList(data.map(r => mapPengeluaranFromDB(r as Record<string, unknown>)));
+    try {
+      const { data, error } = await supabase.from('pengeluaran_rutin').select('*').order('created_at', { ascending: false });
+      if (!error && data) setPengeluaranList(data.map(r => mapPengeluaranFromDB(r as Record<string, unknown>)));
+    } catch {
+      // ignore
+    }
   }, []);
 
   // ── Seed Demo Data to Supabase ─────────────────────────────
@@ -234,7 +317,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (companyData) setCompanyInfo(mapCompanyInfoFromDB(companyData as Record<string, unknown>));
 
-      // 2. Karyawan seed
+      // 2. Users seed (AGUS admin & STAFF)
+      try {
+        await supabase.from('app_users').upsert(
+          initialUsers.map(u => ({
+            username: u.username,
+            password: u.password,
+            nama: u.nama,
+            role: u.role,
+            is_active: u.isActive,
+          })),
+          { onConflict: 'username' }
+        );
+      } catch (e) {
+        console.warn('Could not seed users table:', e);
+      }
+
+      // 3. Karyawan seed
       const karyawanInsert = initialKaryawan.map(k => ({
         nik: k.nik, nama: k.nama, divisi: k.divisi, jabatan: k.jabatan,
         status: k.status, email: k.email, no_hp: k.noHp, alamat: k.alamat,
@@ -247,11 +346,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const { data: karyawanData } = await supabase.from('karyawan').insert(karyawanInsert).select();
       if (!karyawanData) return;
 
-      // Map old ID → new UUID
       const idMap: Record<string, string> = {};
       initialKaryawan.forEach((orig, i) => { if (karyawanData[i]) idMap[orig.id] = karyawanData[i].id; });
 
-      // 3. Kasbon seed
+      // 4. Kasbon seed
       const kasbonInsert = initialKasbon.map(kb => ({
         karyawan_id: idMap[kb.karyawanId],
         nomor_kasbon: kb.nomorKasbon, tanggal_pinjam: kb.tanggalPinjam,
@@ -268,7 +366,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         initialKasbon.forEach((orig, i) => { if (kasbonData[i]) kasbonIdMap[orig.id] = kasbonData[i].id; });
       }
 
-      // 4. Gaji seed
+      // 5. Gaji seed
       const gajiInsert = initialGaji.map(g => ({
         nomor_slip: g.nomorSlip,
         karyawan_id: idMap[g.karyawanId],
@@ -291,7 +389,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       await supabase.from('gaji').insert(gajiInsert);
 
-      // 5. Pengeluaran seed
+      // 6. Pengeluaran seed
       const pengeluaranInsert = initialPengeluaran.map(p => ({
         nomor_kwitansi: p.nomorKwitansi, tanggal: p.tanggal, kategori: p.kategori,
         nominal: p.nominal, metode_bayar: p.metodeBayar,
@@ -302,32 +400,49 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await supabase.from('pengeluaran_rutin').insert(pengeluaranInsert);
 
       // Refresh all
-      await Promise.all([fetchKaryawan(), fetchKasbon(), fetchGaji(), fetchPengeluaran()]);
+      await Promise.all([fetchUsers(), fetchKaryawan(), fetchKasbon(), fetchGaji(), fetchPengeluaran()]);
 
     } catch (err) {
       console.error('Seed error:', err);
     }
-  }, [fetchKaryawan, fetchKasbon, fetchGaji, fetchPengeluaran]);
+  }, [fetchUsers, fetchKaryawan, fetchKasbon, fetchGaji, fetchPengeluaran]);
 
   // ── Initial Load + Realtime Subscriptions ─────────────────
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
       try {
-        const [{ data: karyawanData }, { data: compData }] = await Promise.all([
+        const [{ data: karyawanData }, { data: usersData }] = await Promise.all([
           supabase.from('karyawan').select('*').limit(1),
-          supabase.from('company_info').select('*').limit(1),
+          supabase.from('app_users').select('*').limit(1),
         ]);
 
-        // Seed jika data kosong
         if (!karyawanData || karyawanData.length === 0) {
           await seedInitialData();
         } else {
-          await Promise.all([fetchCompany(), fetchKaryawan(), fetchKasbon(), fetchGaji(), fetchPengeluaran()]);
+          // If users table is empty or newly created, insert default users
+          if (!usersData || usersData.length === 0) {
+            try {
+              await supabase.from('app_users').upsert(
+                initialUsers.map(u => ({
+                  username: u.username,
+                  password: u.password,
+                  nama: u.nama,
+                  role: u.role,
+                  is_active: u.isActive,
+                })),
+                { onConflict: 'username' }
+              );
+            } catch (e) {
+              console.warn('Error inserting users:', e);
+            }
+          }
+          await Promise.all([fetchUsers(), fetchCompany(), fetchKaryawan(), fetchKasbon(), fetchGaji(), fetchPengeluaran()]);
         }
       } catch (err) {
         console.error('Init error:', err);
-        addToast('error', 'Koneksi ke database gagal. Cek koneksi internet Anda.');
+        // Fallback local
+        setUserList(initialUsers);
       } finally {
         setIsLoading(false);
       }
@@ -335,30 +450,153 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     init();
 
-    // ── Realtime Subscriptions ────────────────────────────────
+    // Realtime Subscriptions
     const channel = supabase
       .channel('kantorku-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'karyawan' },
-        () => { fetchKaryawan(); }
-      )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'kasbon' },
-        () => { fetchKasbon(); }
-      )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'gaji' },
-        () => { fetchGaji(); }
-      )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pengeluaran_rutin' },
-        () => { fetchPengeluaran(); }
-      )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'company_info' },
-        () => { fetchCompany(); }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_users' }, () => { fetchUsers(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'karyawan' }, () => { fetchKaryawan(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kasbon' }, () => { fetchKasbon(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gaji' }, () => { fetchGaji(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pengeluaran_rutin' }, () => { fetchPengeluaran(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'company_info' }, () => { fetchCompany(); })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ============================================================
+  // AUTHENTICATION (LOGIN & LOGOUT)
+  // ============================================================
+  const login = useCallback(async (username: string, pass: string): Promise<{ success: boolean; message?: string }> => {
+    const cleanUser = username.trim().toUpperCase();
+    
+    // 1. Check Supabase DB first
+    try {
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('*')
+        .ilike('username', cleanUser)
+        .maybeSingle();
+
+      if (!error && data) {
+        const dbUser = mapUserFromDB(data as Record<string, unknown>);
+        if (!dbUser.isActive) {
+          return { success: false, message: 'Akun Anda sedang dinonaktifkan. Hubungi Administrator.' };
+        }
+        if (dbUser.password === pass) {
+          const updatedUser = { ...dbUser, lastLogin: new Date().toISOString() };
+          setCurrentUser(updatedUser);
+          localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedUser));
+          
+          // Update last_login in DB asynchronously
+          supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', dbUser.id);
+          
+          addToast('success', `Selamat datang, ${dbUser.nama}! (Role: ${dbUser.role})`);
+          return { success: true };
+        } else {
+          return { success: false, message: 'Katasandi yang Anda masukkan salah.' };
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase auth fallback:', err);
+    }
+
+    // 2. Fallback to local default users (e.g. AGUS / @Agustsus2)
+    const localUser = initialUsers.find(u => u.username.toUpperCase() === cleanUser);
+    if (localUser) {
+      if (localUser.password === pass) {
+        setCurrentUser(localUser);
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(localUser));
+        addToast('success', `Selamat datang, ${localUser.nama}!`);
+        return { success: true };
+      }
+      return { success: false, message: 'Katasandi yang Anda masukkan salah.' };
+    }
+
+    return { success: false, message: 'Username tidak ditemukan.' };
+  }, [addToast]);
+
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setActiveTab('dashboard');
+    addToast('info', 'Anda telah keluar dari aplikasi.');
+  }, [addToast]);
+
+  // ============================================================
+  // USER MANAGEMENT CRUD (Admin only)
+  // ============================================================
+  const addUser = useCallback(async (data: Omit<User, 'id' | 'createdAt' | 'lastLogin'>): Promise<boolean> => {
+    try {
+      const { data: result, error } = await supabase.from('app_users').insert({
+        username: data.username.trim().toUpperCase(),
+        password: data.password || '123456',
+        nama: data.nama,
+        role: data.role,
+        is_active: data.isActive,
+      }).select().single();
+
+      if (error) {
+        addToast('error', `Gagal tambah user: ${error.message}`);
+        return false;
+      }
+      if (result) {
+        setUserList(prev => [...prev, mapUserFromDB(result as Record<string, unknown>)]);
+      }
+      addToast('success', `User ${data.username} (${data.role}) berhasil ditambahkan`);
+      return true;
+    } catch (err) {
+      console.error(err);
+      addToast('error', 'Gagal menambahkan user');
+      return false;
+    }
+  }, [addToast]);
+
+  const updateUser = useCallback(async (id: string, data: Partial<User>): Promise<boolean> => {
+    try {
+      const updatePayload: Record<string, unknown> = {};
+      if (data.username !== undefined) updatePayload.username = data.username.trim().toUpperCase();
+      if (data.password !== undefined && data.password.trim() !== '') updatePayload.password = data.password;
+      if (data.nama !== undefined) updatePayload.nama = data.nama;
+      if (data.role !== undefined) updatePayload.role = data.role;
+      if (data.isActive !== undefined) updatePayload.is_active = data.isActive;
+
+      const { data: result, error } = await supabase.from('app_users').update(updatePayload).eq('id', id).select().single();
+
+      if (error) {
+        addToast('error', `Gagal update user: ${error.message}`);
+        return false;
+      }
+      if (result) {
+        setUserList(prev => prev.map(u => u.id === id ? mapUserFromDB(result as Record<string, unknown>) : u));
+      }
+      addToast('success', 'Data user berhasil diperbarui');
+      return true;
+    } catch (err) {
+      console.error(err);
+      addToast('error', 'Gagal memperbarui user');
+      return false;
+    }
+  }, [addToast]);
+
+  const deleteUser = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('app_users').delete().eq('id', id);
+      if (error) {
+        addToast('error', `Gagal hapus user: ${error.message}`);
+        return false;
+      }
+      setUserList(prev => prev.filter(u => u.id !== id));
+      addToast('info', 'User telah dihapus');
+      return true;
+    } catch (err) {
+      console.error(err);
+      addToast('error', 'Gagal menghapus user');
+      return false;
+    }
+  }, [addToast]);
 
   // ============================================================
   // COMPANY INFO
@@ -373,7 +611,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       finance_name: info.financeName, finance_title: info.financeTitle,
       logo_text: info.logoText, updated_at: new Date().toISOString(),
     };
-    // Remove undefined keys
     const cleanData = Object.fromEntries(Object.entries(dbData).filter(([, v]) => v !== undefined));
 
     if (existing) {
@@ -587,7 +824,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newGaji = mapGajiFromDB(result as Record<string, unknown>);
     setGajiList(prev => [newGaji, ...prev]);
 
-    // Auto-sync kasbon jika status Dibayar
     if (data.status === 'Dibayar' && data.potongan.kasbon > 0 && data.potongan.kasbonId) {
       await applyKasbonDeductionDB(data.potongan.kasbonId, data.potongan.kasbon, newGaji.id, data.periodeBulan, data.periodeTahun);
     }
@@ -693,7 +929,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     ]);
 
     const backupData = {
-      version: '2.0-supabase',
+      version: '2.1-supabase',
       exportedAt: new Date().toISOString(),
       companyInfo: compRes.data ? mapCompanyInfoFromDB(compRes.data as Record<string, unknown>) : companyInfo,
       karyawanList: (karRes.data || []).map(r => mapKaryawanFromDB(r as Record<string, unknown>)),
@@ -720,14 +956,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const resetToDemoData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Delete all data (order matters due to FK constraints)
       await supabase.from('gaji').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('kasbon').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('karyawan').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('pengeluaran_rutin').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('company_info').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-      // Re-seed
       await seedInitialData();
       addToast('info', 'Data berhasil direset ke data contoh (Demo)');
     } catch (err) {
@@ -740,6 +974,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   return (
     <AppContext.Provider value={{
+      currentUser, login, logout, userList, addUser, updateUser, deleteUser,
       activeTab, setActiveTab, isLoading,
       companyInfo, updateCompanyInfo,
       karyawanList, addKaryawan, updateKaryawan, deleteKaryawan, getKaryawanById,

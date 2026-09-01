@@ -2,10 +2,11 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Calendar,
-  Building,
   Menu,
-  Sparkles,
   Download,
+  ShieldCheck,
+  Shield,
+  LogOut,
 } from 'lucide-react';
 import { formatTanggal } from '../../utils/formatters';
 
@@ -14,7 +15,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
-  const { activeTab, companyInfo, exportDataJSON } = useApp();
+  const { activeTab, exportDataJSON, currentUser, logout } = useApp();
 
   const getPageTitle = () => {
     switch (activeTab) {
@@ -43,6 +44,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           title: 'Pengeluaran Rutin Kantor',
           subtitle: 'Pencatatan biaya operasional kantor & cetak kwitansi resmi.',
         };
+      case 'users':
+        return {
+          title: 'Manajemen User & Hak Akses',
+          subtitle: 'Atur akun petugas, password, serta izin akses modul aplikasi.',
+        };
       case 'pengaturan':
         return {
           title: 'Pengaturan & Profil Kantor',
@@ -55,6 +61,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
 
   const pageInfo = getPageTitle();
   const todayStr = new Date().toISOString().split('T')[0];
+  const isAdmin = currentUser?.role === 'Admin';
 
   return (
     <header className="bg-white border-b border-slate-200/80 px-4 sm:px-8 py-4 sticky top-0 z-30 flex items-center justify-between shadow-xs no-print">
@@ -70,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
 
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
               {pageInfo.title}
             </h2>
           </div>
@@ -80,20 +87,44 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
         </div>
       </div>
 
-      {/* Right: Date Badge & Quick Backup */}
+      {/* Right: Date Badge & User Role & Quick Actions */}
       <div className="flex items-center gap-2 sm:gap-3">
-        <div className="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-200/70 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700">
+        <div className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200/70 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700">
           <Calendar className="w-4 h-4 text-brand-600" />
           <span>{formatTanggal(todayStr)}</span>
         </div>
 
+        {/* User Role Badge */}
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${
+          isAdmin
+            ? 'bg-amber-50 text-amber-800 border border-amber-200'
+            : 'bg-sky-50 text-sky-800 border border-sky-200'
+        }`}>
+          {isAdmin ? <ShieldCheck className="w-3.5 h-3.5 text-amber-600" /> : <Shield className="w-3.5 h-3.5 text-sky-600" />}
+          <span>{currentUser?.username || 'User'}</span>
+          <span className="opacity-60 text-[10px]">({currentUser?.role || 'Staff'})</span>
+        </div>
+
+        {/* Backup button (Admin only) */}
+        {isAdmin && (
+          <button
+            onClick={exportDataJSON}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+            title="Backup Seluruh Data ke file JSON"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-600" />
+            <span>Backup</span>
+          </button>
+        )}
+
+        {/* Logout Button */}
         <button
-          onClick={exportDataJSON}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors"
-          title="Backup Seluruh Data ke file JSON"
+          onClick={logout}
+          className="p-1.5 sm:px-3 sm:py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+          title="Keluar dari Akun"
         >
-          <Download className="w-3.5 h-3.5 text-slate-600" />
-          <span className="hidden sm:inline">Backup</span>
+          <LogOut className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Keluar</span>
         </button>
       </div>
     </header>

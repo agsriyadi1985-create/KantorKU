@@ -5,30 +5,55 @@ import { Header } from './components/layout/Header';
 import { MobileNav } from './components/layout/MobileNav';
 import { ToastContainer } from './components/common/Toast';
 import { LoadingScreen } from './components/common/LoadingScreen';
+import { LoginView } from './components/views/LoginView';
 import { DashboardView } from './components/views/DashboardView';
 import { KaryawanView } from './components/views/KaryawanView';
 import { GajiView } from './components/views/GajiView';
 import { KasbonView } from './components/views/KasbonView';
 import { PengeluaranView } from './components/views/PengeluaranView';
+import { UserManagementView } from './components/views/UserManagementView';
 import { PengaturanView } from './components/views/PengaturanView';
 
 const MainContent: React.FC = () => {
-  const { activeTab, isLoading } = useApp();
+  const { activeTab, isLoading, currentUser } = useApp();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // 1. Loading State
   if (isLoading) {
     return <LoadingScreen />;
   }
 
+  // 2. Authentication Check (Show Login Page if not logged in)
+  if (!currentUser) {
+    return (
+      <>
+        <LoginView />
+        <ToastContainer />
+      </>
+    );
+  }
+
+  const isAdmin = currentUser.role === 'Admin';
+
+  // 3. Render Active View with Role-Based Route Protection
   const renderActiveView = () => {
     switch (activeTab) {
-      case 'dashboard':    return <DashboardView />;
-      case 'karyawan':     return <KaryawanView />;
-      case 'gaji':         return <GajiView />;
-      case 'kasbon':       return <KasbonView />;
-      case 'pengeluaran':  return <PengeluaranView />;
-      case 'pengaturan':   return <PengaturanView />;
-      default:             return <DashboardView />;
+      case 'dashboard':
+        return <DashboardView />;
+      case 'karyawan':
+        return isAdmin ? <KaryawanView /> : <DashboardView />;
+      case 'gaji':
+        return <GajiView />;
+      case 'kasbon':
+        return <KasbonView />;
+      case 'pengeluaran':
+        return <PengeluaranView />;
+      case 'users':
+        return isAdmin ? <UserManagementView /> : <DashboardView />;
+      case 'pengaturan':
+        return isAdmin ? <PengaturanView /> : <DashboardView />;
+      default:
+        return <DashboardView />;
     }
   };
 
