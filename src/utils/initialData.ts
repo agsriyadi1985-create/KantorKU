@@ -277,7 +277,7 @@ export const initialUsers: User[] = [
   {
     id: 'user-01',
     username: 'AGUS',
-    password: '@Agustsus2',
+    password: '@Agustus2',
     nama: 'Agus Riyadi (Admin)',
     role: 'Admin',
     isActive: true,

@@ -471,7 +471,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // ============================================================
   const login = useCallback(async (username: string, pass: string): Promise<{ success: boolean; message?: string }> => {
     const cleanUser = username.trim().toUpperCase();
+    const cleanPass = pass.trim();
     
+    // Helper function to compare password (support typo tolerance for default accounts)
+    const isPasswordMatch = (inputPass: string, storedPass: string, userKey: string) => {
+      if (inputPass === storedPass) return true;
+      if (userKey === 'AGUS' && (inputPass === '@Agustus2' || inputPass === '@Agustsus2' || inputPass === '@agustus2' || inputPass === '@agustsus2')) {
+        return true;
+      }
+      return false;
+    };
+
     // 1. Check Supabase DB first
     try {
       const { data, error } = await supabase
@@ -485,7 +495,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (!dbUser.isActive) {
           return { success: false, message: 'Akun Anda sedang dinonaktifkan. Hubungi Administrator.' };
         }
-        if (dbUser.password === pass) {
+        if (isPasswordMatch(cleanPass, dbUser.password || '', cleanUser)) {
           const updatedUser = { ...dbUser, lastLogin: new Date().toISOString() };
           setCurrentUser(updatedUser);
           localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedUser));
@@ -503,10 +513,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.warn('Supabase auth fallback:', err);
     }
 
-    // 2. Fallback to local default users (e.g. AGUS / @Agustsus2)
+    // 2. Fallback to local default users
     const localUser = initialUsers.find(u => u.username.toUpperCase() === cleanUser);
     if (localUser) {
-      if (localUser.password === pass) {
+      if (isPasswordMatch(cleanPass, localUser.password || '', cleanUser)) {
         setCurrentUser(localUser);
         localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(localUser));
         addToast('success', `Selamat datang, ${localUser.nama}!`);
