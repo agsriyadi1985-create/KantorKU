@@ -24,7 +24,7 @@ import {
   Shield,
   HelpCircle,
 } from 'lucide-react';
-import { formatRupiah, formatTanggal, getNamaBulan } from '../../utils/formatters';
+import { formatRupiah, formatTanggal, getNamaBulan, normalizeNIK } from '../../utils/formatters';
 
 const STATUS_OPTIONS: TaskStatus[] = ['On Process', 'Selesai', 'Batal'];
 
@@ -39,30 +39,32 @@ export const StaffPortalView: React.FC = () => {
     companyInfo,
   } = useApp();
 
-  // 1. Determine active employee profile for current staff
-  // Match by currentUser.karyawanId, or match by nama/username, or fallback to first karyawan
-  const [selectedKaryawanId, setSelectedKaryawanId] = useState<string>(() => {
-    if (currentUser?.karyawanId) return currentUser.karyawanId;
-    const matchByNama = karyawanList.find(
+  // 1. Determine active employee by karyawanId first, then NIK match, then name match
+  const resolveKaryawan = () => {
+    if (currentUser?.karyawanId) {
+      const byId = karyawanList.find((k) => k.id === currentUser.karyawanId);
+      if (byId) return byId.id;
+    }
+    // Username "KTK2026001" -> NIK "KTK-2026-001"
+    const normUsername = normalizeNIK(currentUser?.username);
+    const byNIK = karyawanList.find((k) => normalizeNIK(k.nik) === normUsername);
+    if (byNIK) return byNIK.id;
+    // Fallback: name match
+    const byNama = karyawanList.find(
       (k) =>
         k.nama.toLowerCase().includes(currentUser?.nama.toLowerCase() || '') ||
-        currentUser?.nama.toLowerCase().includes(k.nama.toLowerCase()) ||
-        k.nama.toLowerCase().includes(currentUser?.username.toLowerCase() || '')
+        currentUser?.nama.toLowerCase().includes(k.nama.toLowerCase())
     );
-    if (matchByNama) return matchByNama.id;
+    if (byNama) return byNama.id;
     return karyawanList[0]?.id || '';
-  });
+  };
+
+  const [selectedKaryawanId, setSelectedKaryawanId] = useState<string>(resolveKaryawan);
 
   useEffect(() => {
-    if (!selectedKaryawanId && karyawanList.length > 0) {
-      const match = karyawanList.find(
-        (k) =>
-          k.nama.toLowerCase().includes(currentUser?.nama.toLowerCase() || '') ||
-          currentUser?.nama.toLowerCase().includes(k.nama.toLowerCase())
-      );
-      setSelectedKaryawanId(match ? match.id : karyawanList[0].id);
-    }
-  }, [karyawanList, currentUser, selectedKaryawanId]);
+    setSelectedKaryawanId(resolveKaryawan());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, karyawanList.length]);
 
   const activeKaryawan = karyawanList.find((k) => k.id === selectedKaryawanId) || karyawanList[0];
 
@@ -89,9 +91,9 @@ export const StaffPortalView: React.FC = () => {
     hour12: false,
   }).format(currentTime);
 
-  // 3. Employee's active kasbon & tasks
+  // 3. Employee's active kasbon & tasks — strict filter to current employee only
   const myTasks = taskList.filter((t) => {
-    if (!activeKaryawan) return true;
+    if (!activeKaryawan) return false;
     return (
       t.assignedTo === activeKaryawan.id ||
       t.assignedToNama.toLowerCase().includes(activeKaryawan.nama.toLowerCase()) ||
@@ -99,7 +101,8 @@ export const StaffPortalView: React.FC = () => {
     );
   });
 
-  const displayTasks = myTasks.length > 0 ? myTasks : taskList;
+  // displayTasks is purely filtered to the active employee (never leaks other employees' tasks)
+  const displayTasks = myTasks;
   const onProcessTasksCount = displayTasks.filter((t) => t.status === 'On Process').length;
   const selesaiTasksCount = displayTasks.filter((t) => t.status === 'Selesai').length;
 

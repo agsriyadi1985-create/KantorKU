@@ -149,3 +149,10 @@ export const generateKodeKwitansi = (count: number): string => {
   const countStr = String(count + 1).padStart(3, '0');
   return `KW-${tahun}${bulan}-${countStr}`;
 };
+
+// Normalisasi NIK (menghapus tanda strip, spasi, dan mengubah ke huruf kapital)
+// Contoh: 'KTK2026001' <-> 'KTK-2026-001'
+export const normalizeNIK = (str: string | undefined | null): string => {
+  if (!str) return '';
+  return str.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+};

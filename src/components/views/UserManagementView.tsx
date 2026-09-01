@@ -7,9 +7,10 @@ import {
 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { StatCard } from '../common/StatCard';
+import { normalizeNIK } from '../../utils/formatters';
 
 export const UserManagementView: React.FC = () => {
-  const { userList, addUser, updateUser, deleteUser, currentUser } = useApp();
+  const { userList, addUser, updateUser, deleteUser, currentUser, karyawanList } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -21,6 +22,7 @@ export const UserManagementView: React.FC = () => {
   const [formPassword, setFormPassword] = useState('');
   const [formNama, setFormNama] = useState('');
   const [formRole, setFormRole] = useState<UserRole>('Staff');
+  const [formKaryawanId, setFormKaryawanId] = useState<string>('');
   const [formIsActive, setFormIsActive] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -33,6 +35,7 @@ export const UserManagementView: React.FC = () => {
     setFormPassword('');
     setFormNama('');
     setFormRole('Staff');
+    setFormKaryawanId('');
     setFormIsActive(true);
     setIsModalOpen(true);
   };
@@ -43,6 +46,7 @@ export const UserManagementView: React.FC = () => {
     setFormPassword(''); // leave blank if unchanged
     setFormNama(user.nama);
     setFormRole(user.role);
+    setFormKaryawanId(user.karyawanId || '');
     setFormIsActive(user.isActive);
     setIsModalOpen(true);
   };
@@ -66,6 +70,7 @@ export const UserManagementView: React.FC = () => {
           username: formUsername.trim().toUpperCase(),
           nama: formNama.trim(),
           role: formRole,
+          karyawanId: formKaryawanId || undefined,
           isActive: formIsActive,
         };
         if (formPassword.trim()) {
@@ -79,6 +84,7 @@ export const UserManagementView: React.FC = () => {
           password: formPassword.trim(),
           nama: formNama.trim(),
           role: formRole,
+          karyawanId: formKaryawanId || undefined,
           isActive: formIsActive,
         });
         if (success) setIsModalOpen(false);
@@ -283,7 +289,7 @@ export const UserManagementView: React.FC = () => {
                           {user.username.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-bold text-slate-900">{user.username}</span>
                             {user.id === currentUser?.id && (
                               <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.2 rounded-full font-semibold">
@@ -292,6 +298,21 @@ export const UserManagementView: React.FC = () => {
                             )}
                           </div>
                           <div className="text-xs text-slate-500">{user.nama}</div>
+                          {(() => {
+                            const linkedKaryawan = karyawanList.find(
+                              (k) =>
+                                (user.karyawanId && k.id === user.karyawanId) ||
+                                normalizeNIK(k.nik) === normalizeNIK(user.username)
+                            );
+                            if (linkedKaryawan) {
+                              return (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded-md mt-0.5 font-mono">
+                                  NIK: {linkedKaryawan.nik} ({linkedKaryawan.nama})
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       </div>
                     </td>
@@ -373,13 +394,44 @@ export const UserManagementView: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Hubungkan ke Data Karyawan (NIK) [Opsional]
+            </label>
+            <select
+              value={formKaryawanId}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                setFormKaryawanId(selectedId);
+                if (selectedId) {
+                  const emp = karyawanList.find((k) => k.id === selectedId);
+                  if (emp) {
+                    if (!formNama || !editingUser) setFormNama(emp.nama);
+                    if (!formUsername || !editingUser) setFormUsername(emp.nik.replace(/[^A-Z0-9]/gi, ''));
+                  }
+                }
+              }}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="">-- Tidak Terhubung / Otomatis by NIK Login --</option>
+              {karyawanList.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.nik} — {k.nama} ({k.jabatan})
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Saat user login dengan username (misal NIK: <span className="font-mono font-bold text-slate-700">KTK2026001</span>), data karyawan <span className="font-mono font-bold text-brand-700">KTK-2026-001</span> otomatis ditampilkan.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
               Username *
             </label>
             <input
               type="text"
               value={formUsername}
               onChange={(e) => setFormUsername(e.target.value)}
-              placeholder="Contoh: PETUGAS1"
+              placeholder="Contoh: KTK2026001 atau PETUGAS1"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 uppercase"
               required
             />

@@ -111,6 +111,25 @@ export const initialKaryawan: Karyawan[] = [
     noRekening: '0981234567',
     atasNamaRekening: 'Siti Nurhaliza',
   },
+  {
+    id: 'emp-06',
+    nik: 'KTK-2026-001',
+    nama: 'Dimas Setiawan',
+    divisi: 'Operasional',
+    jabatan: 'Staff Lapangan & Pengiriman',
+    status: 'Tetap',
+    email: 'dimas.setiawan@kantorku.id',
+    noHp: '0812-9876-5432',
+    alamat: 'Jl. Surya Kencana No. 10, Jakarta Barat',
+    tanggalMasuk: '2026-01-10',
+    gajiPokok: 5300000,
+    tunjanganMakan: 500000,
+    tunjanganTransport: 400000,
+    tunjanganJabatan: 300000,
+    namaBank: 'BCA',
+    noRekening: '7720918231',
+    atasNamaRekening: 'Dimas Setiawan',
+  },
 ];
 
 export const initialKasbon: Kasbon[] = [
@@ -347,6 +366,19 @@ export const initialTasks: Task[] = [
     catatanStaff: '',
     createdBy: 'Agus Riyadi (Admin)',
     createdAt: '2026-09-02T11:00:00.000Z',
+  },
+  {
+    id: 'task-05',
+    judul: 'Pengiriman Dokumen Kontrak & Pengadaan ATK Kantor',
+    deskripsi: 'Antar dokumen kontrak kerja sama ke klien di Jakarta Pusat dan ambil pesanan ATK di percetakan rekanan.',
+    assignedTo: 'emp-06',
+    assignedToNama: 'Dimas Setiawan',
+    deadline: '2026-09-05',
+    prioritas: 'Tinggi',
+    status: 'On Process',
+    catatanStaff: 'Sedang dalam perjalanan pengantaran dokumen.',
+    createdBy: 'Agus Riyadi (Admin)',
+    createdAt: '2026-09-02T12:00:00.000Z',
   },
 ];
 
