@@ -170,7 +170,7 @@ export const GajiView: React.FC = () => {
 
   const gajiBersih = Math.max(0, totalPendapatan - totalPotongan);
 
-  const handleSubmitSlip = (e: React.FormEvent) => {
+  const handleSubmitSlip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedKaryawanId) {
       alert('Pilih karyawan terlebih dahulu');
@@ -178,7 +178,7 @@ export const GajiView: React.FC = () => {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const newGaji = addGaji({
+    const newGaji = await addGaji({
       karyawanId: selectedKaryawanId,
       periodeBulan: formPeriodeBulan,
       periodeTahun: formPeriodeTahun,
@@ -211,8 +211,7 @@ export const GajiView: React.FC = () => {
     });
 
     setIsFormOpen(false);
-    // Optionally open print preview directly
-    setSelectedSlipForPrint(newGaji);
+    if (newGaji) setSelectedSlipForPrint(newGaji);
   };
 
   const handleDeleteSlip = (slip: Gaji) => {

@@ -124,7 +124,7 @@ export const PengeluaranView: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.dibayarkanKepada || !formData.keperluan || formData.nominal <= 0) {
       alert('Mohon lengkapi penerima pembayaran, keperluan, dan nominal transaksi.');
@@ -132,13 +132,12 @@ export const PengeluaranView: React.FC = () => {
     }
 
     if (editingId) {
-      updatePengeluaran(editingId, formData);
+      await updatePengeluaran(editingId, formData);
       setIsFormOpen(false);
     } else {
-      const created = addPengeluaran(formData);
+      const created = await addPengeluaran(formData);
       setIsFormOpen(false);
-      // Automatically prompt Kwitansi Print preview
-      setSelectedKwitansiForPrint(created);
+      if (created) setSelectedKwitansiForPrint(created);
     }
   };
 
