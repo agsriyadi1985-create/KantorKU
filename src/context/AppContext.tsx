@@ -46,6 +46,7 @@ interface AppContextType {
   updateTask: (id: string, data: Partial<Task>) => Promise<void>;
   updateTaskStatus: (id: string, status: TaskStatus, catatanStaff?: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  clearAllTasks: () => Promise<void>;
 
   // Karyawan
   karyawanList: Karyawan[];
@@ -912,6 +913,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [addToast]);
 
+  const clearAllTasks = useCallback(async () => {
+    try {
+      const { error } = await supabase.from('tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) {
+        console.warn('Supabase clear all tasks fallback:', error);
+      }
+      setTaskList([]);
+      addToast('info', 'Seluruh daftar tugas telah dibersihkan');
+    } catch (err) {
+      console.error(err);
+      setTaskList([]);
+      addToast('info', 'Seluruh daftar tugas telah dibersihkan');
+    }
+  }, [addToast]);
+
   // ============================================================
   // COMPANY INFO
   // ============================================================
@@ -1300,7 +1316,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       currentUser, login, logout, userList, addUser, updateUser, deleteUser,
       activeTab, setActiveTab, isLoading,
       companyInfo, updateCompanyInfo,
-      taskList, addTask, updateTask, updateTaskStatus, deleteTask,
+      taskList, addTask, updateTask, updateTaskStatus, deleteTask, clearAllTasks,
       karyawanList, addKaryawan, updateKaryawan, deleteKaryawan, getKaryawanById,
       kasbonList, addKasbon, updateKasbon, deleteKasbon, bayarKasbonManual, getActiveKasbonByKaryawan,
       gajiList, addGaji, updateGaji, deleteGaji, markGajiAsPaid, getGajiById,

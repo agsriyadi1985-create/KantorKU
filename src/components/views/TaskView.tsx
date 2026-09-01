@@ -32,6 +32,7 @@ export const TaskView: React.FC = () => {
     updateTask,
     updateTaskStatus,
     deleteTask,
+    clearAllTasks,
     currentUser,
   } = useApp();
 
@@ -276,14 +277,31 @@ export const TaskView: React.FC = () => {
         </div>
 
         {isAdmin && (
-          <button
-            type="button"
-            onClick={handleOpenAdd}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Buat Tugas Baru</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {taskList.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA tugas dalam daftar?')) {
+                    clearAllTasks();
+                  }
+                }}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs sm:text-sm font-semibold rounded-xl border border-rose-200 transition-all active:scale-95 cursor-pointer"
+                title="Kosongkan seluruh tugas"
+              >
+                <Trash2 className="w-4 h-4 text-rose-600" />
+                <span className="hidden sm:inline">Hapus Semua Tugas</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Buat Tugas Baru</span>
+            </button>
+          </div>
         )}
       </div>
 
