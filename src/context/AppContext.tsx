@@ -671,6 +671,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       tunjangan_makan: data.tunjanganMakan, tunjangan_transport: data.tunjanganTransport,
       tunjangan_jabatan: data.tunjanganJabatan, nama_bank: data.namaBank,
       no_rekening: data.noRekening, atas_nama_rekening: data.atasNamaRekening,
+      avatar_url: data.avatarUrl || null,
     }).select().single();
 
     if (error) { addToast('error', `Gagal menambah karyawan: ${error.message}`); return; }
@@ -696,6 +697,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (data.namaBank !== undefined) updateData.nama_bank = data.namaBank;
     if (data.noRekening !== undefined) updateData.no_rekening = data.noRekening;
     if (data.atasNamaRekening !== undefined) updateData.atas_nama_rekening = data.atasNamaRekening;
+    if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl || null;
 
     const { data: result, error } = await supabase.from('karyawan').update(updateData).eq('id', id).select().single();
     if (error) { addToast('error', `Gagal update: ${error.message}`); return; }

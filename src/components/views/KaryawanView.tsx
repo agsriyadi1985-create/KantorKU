@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Karyawan, StatusKaryawan } from '../../types';
 import { Modal } from '../common/Modal';
@@ -21,6 +21,9 @@ import {
   Receipt,
   LayoutGrid,
   Table as TableIcon,
+  Camera,
+  Upload,
+  X,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../../utils/formatters';
 
@@ -54,6 +57,7 @@ export const KaryawanView: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [detailKaryawan, setDetailKaryawan] = useState<Karyawan | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const initialFormState: Omit<Karyawan, 'id'> = {
@@ -73,6 +77,7 @@ export const KaryawanView: React.FC = () => {
     namaBank: 'BCA',
     noRekening: '',
     atasNamaRekening: '',
+    avatarUrl: '',
   };
 
   const [formData, setFormData] = useState<Omit<Karyawan, 'id'>>(initialFormState);
@@ -124,8 +129,31 @@ export const KaryawanView: React.FC = () => {
       namaBank: emp.namaBank,
       noRekening: emp.noRekening,
       atasNamaRekening: emp.atasNamaRekening || emp.nama,
+      avatarUrl: emp.avatarUrl || '',
     });
     setIsFormOpen(true);
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ukuran file foto maksimal 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setFormData((prev) => ({ ...prev, avatarUrl: base64 }));
+      }
+    };
+    reader.readAsDataURL(file);
+    if (photoInputRef.current) {
+      photoInputRef.current.value = '';
+    }
   };
 
   const handleSubmitForm = (e: React.FormEvent) => {
@@ -280,9 +308,17 @@ export const KaryawanView: React.FC = () => {
                   {/* Top Badge & Status */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-600 to-sky-500 text-white font-black text-base flex items-center justify-center shadow-xs">
-                        {emp.nama.charAt(0)}
-                      </div>
+                      {emp.avatarUrl ? (
+                        <img
+                          src={emp.avatarUrl}
+                          alt={emp.nama}
+                          className="w-11 h-11 rounded-xl object-cover shadow-xs border border-slate-200 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-600 to-sky-500 text-white font-black text-base flex items-center justify-center shadow-xs shrink-0">
+                          {emp.nama.charAt(0)}
+                        </div>
+                      )}
                       <div>
                         <h3 className="font-bold text-slate-900 text-sm group-hover:text-brand-600 transition-colors">
                           {emp.nama}
@@ -382,9 +418,17 @@ export const KaryawanView: React.FC = () => {
                   <tr key={emp.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 font-bold text-xs flex items-center justify-center">
-                          {emp.nama.charAt(0)}
-                        </div>
+                        {emp.avatarUrl ? (
+                          <img
+                            src={emp.avatarUrl}
+                            alt={emp.nama}
+                            className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 font-bold text-xs flex items-center justify-center shrink-0">
+                            {emp.nama.charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <p className="font-bold text-slate-900">{emp.nama}</p>
                           <p className="text-[11px] text-slate-400">{emp.noHp}</p>
@@ -470,6 +514,59 @@ export const KaryawanView: React.FC = () => {
               <Users className="w-4 h-4 text-brand-600" />
               1. Biodata & Status Kepegawaian
             </h4>
+
+            {/* Upload Foto Karyawan */}
+            <div className="mb-4 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-center gap-4">
+              <div className="shrink-0">
+                {formData.avatarUrl ? (
+                  <img
+                    src={formData.avatarUrl}
+                    alt="Pratinjau Foto"
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-500 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-sky-500 text-white font-black text-2xl flex items-center justify-center shadow-sm">
+                    {formData.nama ? formData.nama.charAt(0).toUpperCase() : <Camera className="w-6 h-6 text-white/80" />}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 text-center sm:text-left space-y-1">
+                <label className="block text-xs font-bold text-slate-800">
+                  Foto Profil Karyawan
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Format JPG, PNG atau WEBP (Maksimal 2MB). Foto akan tampil di kartu karyawan.
+                </p>
+                <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
+                  <input
+                    type="file"
+                    ref={photoInputRef}
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    {formData.avatarUrl ? 'Ganti Foto' : 'Unggah Foto'}
+                  </button>
+                  {formData.avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, avatarUrl: '' }))}
+                      className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      Hapus Foto
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -769,9 +866,17 @@ export const KaryawanView: React.FC = () => {
           <div className="space-y-6">
             {/* Header Profil */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-sky-400 text-white font-black text-2xl flex items-center justify-center shadow-md">
-                {detailKaryawan.nama.charAt(0)}
-              </div>
+              {detailKaryawan.avatarUrl ? (
+                <img
+                  src={detailKaryawan.avatarUrl}
+                  alt={detailKaryawan.nama}
+                  className="w-16 h-16 rounded-2xl object-cover shadow-md border-2 border-brand-500 shrink-0"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-sky-400 text-white font-black text-2xl flex items-center justify-center shadow-md shrink-0">
+                  {detailKaryawan.nama.charAt(0)}
+                </div>
+              )}
               <div className="space-y-1 text-center sm:text-left flex-1">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <h3 className="text-base font-extrabold text-slate-900">
