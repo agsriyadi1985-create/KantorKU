@@ -68,9 +68,18 @@ export const SlipGajiModern: React.FC<SlipGajiModernProps> = ({
         {/* 1. Header Minimalis */}
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b-2 border-slate-900 gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-2xl tracking-tighter shadow-md">
-              K
-            </div>
+            <img
+              src={companyInfo.logoUrl || '/logo.png'}
+              alt={companyInfo.name || 'Logo Perusahaan'}
+              className="w-14 h-14 object-contain shrink-0"
+              onError={(e) => {
+                // Fallback to /logo.png if custom logo fails
+                const target = e.currentTarget;
+                if (target.src !== window.location.origin + '/logo.png') {
+                  target.src = '/logo.png';
+                }
+              }}
+            />
             <div>
               <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">
                 {companyInfo.name}

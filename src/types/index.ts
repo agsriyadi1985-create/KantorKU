@@ -132,6 +132,7 @@ export interface CompanyInfo {
   financeName: string;
   financeTitle: string;
   logoText: string;
+  logoUrl?: string;
 }
 
 export type UserRole = 'Admin' | 'Staff';

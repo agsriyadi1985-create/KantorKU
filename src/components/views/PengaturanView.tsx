@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Building2,
@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Info,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export const PengaturanView: React.FC = () => {
@@ -25,10 +26,34 @@ export const PengaturanView: React.FC = () => {
 
   const [formData, setFormData] = useState(companyInfo);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setFormData(companyInfo);
+  }, [companyInfo]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateCompanyInfo(formData);
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ukuran file logo maksimal 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setFormData((prev) => ({ ...prev, logoUrl: base64 }));
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +96,57 @@ export const PengaturanView: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Logo Preview & Upload */}
+            <div className="sm:col-span-2 flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+              <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 p-1 flex items-center justify-center shadow-xs shrink-0 overflow-hidden">
+                <img
+                  src={formData.logoUrl || '/logo.png'}
+                  alt="Logo Perusahaan"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src !== window.location.origin + '/logo.png') {
+                      target.src = '/logo.png';
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex-1 space-y-1">
+                <label className="block text-xs font-bold text-slate-800">
+                  Logo Kantor / Perusahaan
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Logo ini ditampilkan pada Slip Gaji, Kwitansi, dan Sidebar menu. Format PNG/JPG (Maks. 2MB).
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="file"
+                    ref={logoInputRef}
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Ganti Logo
+                  </button>
+                  {formData.logoUrl && formData.logoUrl !== '/logo.png' && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, logoUrl: '/logo.png' }))}
+                      className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold transition-all"
+                    >
+                      Reset ke Default
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Nama Kantor / Perusahaan *

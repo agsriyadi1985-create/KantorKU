@@ -64,9 +64,17 @@ export const KwitansiPengeluaran: React.FC<KwitansiPengeluaranProps> = ({
         {/* 1. Header Kwitansi */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b-2 border-slate-800 gap-4 mt-2">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg">
-              K
-            </div>
+            <img
+              src={companyInfo.logoUrl || '/logo.png'}
+              alt={companyInfo.name || 'Logo Perusahaan'}
+              className="w-12 h-12 object-contain shrink-0"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (target.src !== window.location.origin + '/logo.png') {
+                  target.src = '/logo.png';
+                }
+              }}
+            />
             <div>
               <h2 className="text-base font-extrabold text-slate-900 uppercase tracking-tight">
                 {companyInfo.name}

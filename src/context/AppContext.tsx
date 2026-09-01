@@ -95,6 +95,7 @@ const mapCompanyInfoFromDB = (row: Record<string, unknown>): CompanyInfo => ({
   financeName: (row.finance_name as string) || '',
   financeTitle: (row.finance_title as string) || '',
   logoText: (row.logo_text as string) || 'KANTORKU',
+  logoUrl: (row.logo_url as string) || (row.logoUrl as string) || '/logo.png',
 });
 
 const mapUserFromDB = (row: Record<string, unknown>): User => ({
@@ -311,6 +312,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           finance_name: initialCompanyInfo.financeName,
           finance_title: initialCompanyInfo.financeTitle,
           logo_text: initialCompanyInfo.logoText,
+          logo_url: initialCompanyInfo.logoUrl || '/logo.png',
         })
         .select()
         .single();
@@ -644,7 +646,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       phone: info.phone, email: info.email, website: info.website,
       leader_name: info.leaderName, leader_title: info.leaderTitle,
       finance_name: info.financeName, finance_title: info.financeTitle,
-      logo_text: info.logoText, updated_at: new Date().toISOString(),
+      logo_text: info.logoText, logo_url: info.logoUrl, updated_at: new Date().toISOString(),
     };
     const cleanData = Object.fromEntries(Object.entries(dbData).filter(([, v]) => v !== undefined));
 

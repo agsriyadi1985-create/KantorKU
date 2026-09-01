@@ -57,11 +57,19 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
           {/* Header */}
           <div className="p-5 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center font-bold text-white shadow-md">
-                K
-              </div>
+              <img
+                src={companyInfo.logoUrl || '/logo.png'}
+                alt="Logo"
+                className="w-9 h-9 object-contain rounded-xl p-0.5 shrink-0"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.src !== window.location.origin + '/logo.png') {
+                    target.src = '/logo.png';
+                  }
+                }}
+              />
               <div>
-                <h2 className="font-extrabold text-sm tracking-tight text-white">KANTORKU</h2>
+                <h2 className="font-extrabold text-sm tracking-tight text-white">{companyInfo.logoText || 'KANTORKU'}</h2>
                 <p className="text-[11px] text-slate-400 truncate max-w-[150px]">{companyInfo.name}</p>
               </div>
             </div>

@@ -84,9 +84,17 @@ export const Sidebar: React.FC = () => {
       {/* Brand Header & Menu */}
       <div className="overflow-y-auto flex-1">
         <div className="p-6 border-b border-slate-800/80 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-sky-400 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-black text-xl tracking-wider">
-            K
-          </div>
+          <img
+            src={companyInfo.logoUrl || '/logo.png'}
+            alt="Logo"
+            className="w-10 h-10 object-contain rounded-xl p-0.5 shrink-0"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (target.src !== window.location.origin + '/logo.png') {
+                target.src = '/logo.png';
+              }
+            }}
+          />
           <div className="overflow-hidden">
             <h1 className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
               {companyInfo.logoText || 'KANTORKU'}

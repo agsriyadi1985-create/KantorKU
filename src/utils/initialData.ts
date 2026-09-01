@@ -12,6 +12,7 @@ export const initialCompanyInfo: CompanyInfo = {
   financeName: 'Siti Rahmawati, S.Ak.',
   financeTitle: 'Head of Finance & HR',
   logoText: 'KANTORKU',
+  logoUrl: '/logo.png',
 };
 
 export const initialKaryawan: Karyawan[] = [
