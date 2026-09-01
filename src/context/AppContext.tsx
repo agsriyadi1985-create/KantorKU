@@ -412,36 +412,61 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const init = async () => {
       setIsLoading(true);
       try {
-        const [{ data: karyawanData }, { data: usersData }] = await Promise.all([
-          supabase.from('karyawan').select('*').limit(1),
+        const [{ data: compData }, { data: usersData }] = await Promise.all([
+          supabase.from('company_info').select('*').limit(1),
           supabase.from('app_users').select('*').limit(1),
         ]);
 
-        if (!karyawanData || karyawanData.length === 0) {
-          await seedInitialData();
-        } else {
-          // If users table is empty or newly created, insert default users
-          if (!usersData || usersData.length === 0) {
-            try {
-              await supabase.from('app_users').upsert(
-                initialUsers.map(u => ({
-                  username: u.username,
-                  password: u.password,
-                  nama: u.nama,
-                  role: u.role,
-                  is_active: u.isActive,
-                })),
-                { onConflict: 'username' }
-              );
-            } catch (e) {
-              console.warn('Error inserting users:', e);
-            }
+        // 1. Ensure company_info exists
+        if (!compData || compData.length === 0) {
+          try {
+            await supabase.from('company_info').insert({
+              name: initialCompanyInfo.name,
+              slogan: initialCompanyInfo.slogan,
+              address: initialCompanyInfo.address,
+              phone: initialCompanyInfo.phone,
+              email: initialCompanyInfo.email,
+              website: initialCompanyInfo.website,
+              leader_name: initialCompanyInfo.leaderName,
+              leader_title: initialCompanyInfo.leaderTitle,
+              finance_name: initialCompanyInfo.financeName,
+              finance_title: initialCompanyInfo.financeTitle,
+              logo_text: initialCompanyInfo.logoText,
+            });
+          } catch (e) {
+            console.warn('Init company info:', e);
           }
-          await Promise.all([fetchUsers(), fetchCompany(), fetchKaryawan(), fetchKasbon(), fetchGaji(), fetchPengeluaran()]);
         }
+
+        // 2. Ensure default app_users exist
+        if (!usersData || usersData.length === 0) {
+          try {
+            await supabase.from('app_users').upsert(
+              initialUsers.map(u => ({
+                username: u.username,
+                password: u.password,
+                nama: u.nama,
+                role: u.role,
+                is_active: u.isActive,
+              })),
+              { onConflict: 'username' }
+            );
+          } catch (e) {
+            console.warn('Init default users:', e);
+          }
+        }
+
+        // 3. Fetch real clean data (Karyawan, Kasbon, Gaji, Pengeluaran start empty)
+        await Promise.all([
+          fetchUsers(),
+          fetchCompany(),
+          fetchKaryawan(),
+          fetchKasbon(),
+          fetchGaji(),
+          fetchPengeluaran(),
+        ]);
       } catch (err) {
         console.error('Init error:', err);
-        // Fallback local
         setUserList(initialUsers);
       } finally {
         setIsLoading(false);
@@ -970,17 +995,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await supabase.from('kasbon').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('karyawan').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('pengeluaran_rutin').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabase.from('company_info').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-      await seedInitialData();
-      addToast('info', 'Data berhasil direset ke data contoh (Demo)');
+      setKaryawanList([]);
+      setKasbonList([]);
+      setGajiList([]);
+      setPengeluaranList([]);
+
+      addToast('info', 'Seluruh data transaksi dan karyawan berhasil dikosongkan.');
     } catch (err) {
-      addToast('error', 'Gagal reset data');
+      addToast('error', 'Gagal mengosongkan data');
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  }, [seedInitialData, addToast]);
+  }, [addToast]);
 
   return (
     <AppContext.Provider value={{
