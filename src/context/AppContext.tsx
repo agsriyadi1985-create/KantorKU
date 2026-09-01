@@ -627,10 +627,51 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     // 3. Direct NIK Employee Mapping (e.g. login with 'KTK2026001' or 'KTK-2026-001' or 'KTK2023001')
-    const employeeMatch = karyawanList.find(k => normalizeNIK(k.nik) === normalizedInput);
+    // Try local state first, then fresh Supabase fetch (handles stale closure when list not loaded yet)
+    let employeeMatch = karyawanList.find(k => normalizeNIK(k.nik) === normalizedInput);
+
+    if (!employeeMatch) {
+      try {
+        const { data: karyawanData } = await supabase.from('karyawan').select('*');
+        if (karyawanData && karyawanData.length > 0) {
+          const freshMatch = (karyawanData as Array<Record<string, unknown>>).find(
+            k => normalizeNIK(k.nik as string) === normalizedInput
+          );
+          if (freshMatch) {
+            employeeMatch = {
+              id: freshMatch.id as string,
+              nik: freshMatch.nik as string,
+              nama: freshMatch.nama as string,
+              divisi: (freshMatch.divisi as string) || '',
+              jabatan: (freshMatch.jabatan as string) || '',
+              status: ((freshMatch.status as string) || 'Tetap') as 'Tetap' | 'Kontrak' | 'Magang',
+              email: (freshMatch.email as string) || '',
+              noHp: (freshMatch.no_hp as string) || '',
+              alamat: (freshMatch.alamat as string) || '',
+              tanggalMasuk: (freshMatch.tanggal_masuk as string) || '',
+              gajiPokok: (freshMatch.gaji_pokok as number) || 0,
+              tunjanganMakan: (freshMatch.tunjangan_makan as number) || 0,
+              tunjanganTransport: (freshMatch.tunjangan_transport as number) || 0,
+              tunjanganJabatan: (freshMatch.tunjangan_jabatan as number) || 0,
+              namaBank: (freshMatch.nama_bank as string) || '',
+              noRekening: (freshMatch.no_rekening as string) || '',
+              atasNamaRekening: (freshMatch.atas_nama_rekening as string) || '',
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Karyawan fetch during login fallback to initialKaryawan:', e);
+        employeeMatch = initialKaryawan.find(k => normalizeNIK(k.nik) === normalizedInput);
+      }
+    }
+
+    if (!employeeMatch) {
+      // Last resort: try initialKaryawan (offline/demo mode)
+      employeeMatch = initialKaryawan.find(k => normalizeNIK(k.nik) === normalizedInput);
+    }
+
     if (employeeMatch) {
-      // Allow employee login using default password or NIK
-      if (isPasswordMatch(cleanPass, '123456', employeeMatch.nik) || cleanPass.length > 0) {
+      if (cleanPass.length > 0) {
         const dynamicUser: User = {
           id: `emp-user-${employeeMatch.id}`,
           username: employeeMatch.nik,
@@ -645,7 +686,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addToast('success', `Selamat datang, ${employeeMatch.nama}! (NIK: ${employeeMatch.nik})`);
         return { success: true };
       }
-      return { success: false, message: 'Katasandi yang Anda masukkan salah.' };
+      return { success: false, message: 'Katasandi tidak boleh kosong.' };
     }
 
     return { success: false, message: 'Username atau NIK Karyawan tidak ditemukan.' };

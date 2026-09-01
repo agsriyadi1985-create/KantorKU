@@ -212,6 +212,30 @@ export const StaffPortalView: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto w-full space-y-4 pb-8 select-none">
+      {/* ─── LOADING / SKELETON STATE ─── */}
+      {karyawanList.length === 0 && (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center shadow-lg animate-pulse">
+            <span className="text-white font-black text-xl">
+              {currentUser?.username?.substring(0, 2).toUpperCase() || 'ST'}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-base font-black text-slate-800">
+              {currentUser?.nama || currentUser?.username || 'Selamat Datang'}
+            </h3>
+            <p className="text-xs text-slate-500">Memuat data karyawan...</p>
+            <div className="flex items-center justify-center gap-1 mt-2">
+              <span className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-bounce" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {karyawanList.length > 0 && (
+      <>
       {/* ─────────────────────────────────────────────────────────────
           1. TOP: FOTO PROFIL & DATA KARYAWAN CARD
       ───────────────────────────────────────────────────────────── */}
@@ -712,6 +736,8 @@ export const StaffPortalView: React.FC = () => {
           </div>
         </form>
       </Modal>
+      </>
+      )}
     </div>
   );
 };
