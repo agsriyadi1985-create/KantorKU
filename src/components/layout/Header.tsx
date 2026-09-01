@@ -1,14 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Calendar,
+  Clock,
   Menu,
   Download,
   ShieldCheck,
   Shield,
   LogOut,
 } from 'lucide-react';
-import { formatTanggal } from '../../utils/formatters';
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -16,6 +16,15 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const { activeTab, exportDataJSON, currentUser, logout } = useApp();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  // Realtime live clock (updates every second)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const getPageTitle = () => {
     switch (activeTab) {
@@ -60,8 +69,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   };
 
   const pageInfo = getPageTitle();
-  const todayStr = new Date().toISOString().split('T')[0];
   const isAdmin = currentUser?.role === 'Admin';
+
+  // Format date in Indonesian locale based on client device local time
+  const formattedDate = new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(currentTime);
+
+  const formattedClock = new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(currentTime);
 
   return (
     <header className="bg-white border-b border-slate-200/80 px-4 sm:px-8 py-4 sticky top-0 z-30 flex items-center justify-between shadow-xs no-print">
@@ -69,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
       <div className="flex items-center gap-3 sm:gap-4">
         <button
           onClick={onOpenMobileMenu}
-          className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+          className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
           aria-label="Buka Menu"
         >
           <Menu className="w-6 h-6" />
@@ -87,11 +110,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
         </div>
       </div>
 
-      {/* Right: Date Badge & User Role & Quick Actions */}
+      {/* Right: Realtime Date/Clock Badge & User Role & Quick Actions */}
       <div className="flex items-center gap-2 sm:gap-3">
-        <div className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200/70 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700">
-          <Calendar className="w-4 h-4 text-brand-600" />
-          <span>{formatTanggal(todayStr)}</span>
+        {/* Realtime Date & Live Clock */}
+        <div className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200/70 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 shadow-xs">
+          <Calendar className="w-4 h-4 text-brand-600 shrink-0" />
+          <span>{formattedDate}</span>
+          <span className="text-slate-300">|</span>
+          <div className="flex items-center gap-1 font-mono text-brand-700 bg-brand-50/80 px-2 py-0.5 rounded-md border border-brand-100/60">
+            <Clock className="w-3 h-3 text-brand-600 animate-pulse" />
+            <span>{formattedClock}</span>
+          </div>
         </div>
 
         {/* User Role Badge */}
