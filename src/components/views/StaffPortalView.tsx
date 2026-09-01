@@ -14,6 +14,9 @@ import {
   Send,
   MessageSquare,
   RefreshCw,
+  Banknote,
+  Phone,
+  MapPin,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal, getNamaBulan, normalizeNIK } from '../../utils/formatters';
 
@@ -282,40 +285,61 @@ export const StaffPortalView: React.FC = () => {
           </div>
 
           {/* Info grid */}
-          <div className="mt-4 grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">NIK</span>
-              <p className="font-mono font-bold text-slate-800 text-[11px] truncate">
-                {activeKaryawan?.nik || currentUser?.username || '-'}
-              </p>
+          <div className="mt-4 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-xs space-y-2.5">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">NIK</span>
+                <p className="font-mono font-bold text-slate-800 text-[11px] truncate">
+                  {activeKaryawan?.nik || currentUser?.username || '-'}
+                </p>
+              </div>
+              <div className="space-y-0.5 text-right">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Status</span>
+                <p className="font-bold text-emerald-700 text-[11px]">{activeKaryawan?.status || 'Tetap'}</p>
+              </div>
             </div>
-            <div className="space-y-0.5 text-right">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Status</span>
-              <p className="font-bold text-emerald-700 text-[11px]">{activeKaryawan?.status || 'Tetap'}</p>
-            </div>
-            <div className="col-span-2 pt-2 border-t border-slate-200/60 flex items-center justify-between">
+
+            {/* Sisa Kasbon */}
+            <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sisa Kasbon</span>
               <span className={`text-xs font-black font-mono ${activeKasbon ? 'text-amber-700' : 'text-slate-600'}`}>
                 {activeKasbon ? formatRupiah(activeKasbon.sisaPinjaman) : 'Rp 0 (Lunas)'}
               </span>
             </div>
-          </div>
 
-          {/* Profile switcher */}
-          {karyawanList.length > 1 && (
-            <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 px-1">
-              <span>Pilih Profil:</span>
-              <select
-                value={selectedKaryawanId}
-                onChange={(e) => setSelectedKaryawanId(e.target.value)}
-                className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              >
-                {karyawanList.map((k) => (
-                  <option key={k.id} value={k.id}>{k.nama} ({k.nik})</option>
-                ))}
-              </select>
+            {/* Gaji Pokok */}
+            <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Gaji Pokok</span>
+              </span>
+              <span className="text-xs font-black font-mono text-emerald-700">
+                {formatRupiah(activeKaryawan?.gajiPokok || 0)}
+              </span>
             </div>
-          )}
+
+            {/* Nomor Kontak */}
+            <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <Phone className="w-3.5 h-3.5 text-sky-600" />
+                <span>Nomor Kontak</span>
+              </span>
+              <span className="text-xs font-bold font-mono text-slate-800">
+                {activeKaryawan?.noHp || '-'}
+              </span>
+            </div>
+
+            {/* Alamat Petugas */}
+            <div className="pt-2 border-t border-slate-200/60 space-y-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                <span>Alamat Petugas</span>
+              </span>
+              <p className="text-[11px] font-medium text-slate-700 leading-snug pl-4">
+                {activeKaryawan?.alamat || '-'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
