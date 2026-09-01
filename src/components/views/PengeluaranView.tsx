@@ -419,10 +419,10 @@ export const PengeluaranView: React.FC = () => {
               </label>
               <input
                 type="number"
-                min="1000"
-                step="5000"
+                min="0"
+                step="any"
                 required
-                value={formData.nominal}
+                value={formData.nominal || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, nominal: Number(e.target.value) })
                 }

@@ -434,10 +434,10 @@ export const KasbonView: React.FC = () => {
               </label>
               <input
                 type="number"
-                min="50000"
-                step="50000"
+                min="0"
+                step="any"
                 required
-                value={formData.jumlahPinjaman}
+                value={formData.jumlahPinjaman || ''}
                 onChange={(e) => handleJumlahChange(Number(e.target.value))}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-brand-500"
               />
@@ -681,11 +681,11 @@ export const KasbonView: React.FC = () => {
             </label>
             <input
               type="number"
-              min="10000"
+              min="0"
               max={detailKasbon?.sisaPinjaman || 99999999}
-              step="10000"
+              step="any"
               required
-              value={payNominal}
+              value={payNominal || ''}
               onChange={(e) => setPayNominal(Number(e.target.value))}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-brand-500"
             />

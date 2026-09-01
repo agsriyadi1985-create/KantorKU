@@ -615,9 +615,9 @@ export const KaryawanView: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  step="50000"
+                  step="any"
                   required
-                  value={formData.gajiPokok}
+                  value={formData.gajiPokok || ''}
                   onChange={(e) =>
                     setFormData({ ...formData, gajiPokok: Number(e.target.value) })
                   }
@@ -631,8 +631,8 @@ export const KaryawanView: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  step="50000"
-                  value={formData.tunjanganJabatan}
+                  step="any"
+                  value={formData.tunjanganJabatan || ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -649,8 +649,8 @@ export const KaryawanView: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  step="50000"
-                  value={formData.tunjanganMakan}
+                  step="any"
+                  value={formData.tunjanganMakan || ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -667,8 +667,8 @@ export const KaryawanView: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  step="50000"
-                  value={formData.tunjanganTransport}
+                  step="any"
+                  value={formData.tunjanganTransport || ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,

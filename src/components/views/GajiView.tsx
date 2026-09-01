@@ -539,8 +539,8 @@ export const GajiView: React.FC = () => {
                   <input
                     type="number"
                     min="0"
-                    step="50000"
-                    value={gajiPokok}
+                    step="any"
+                    value={gajiPokok || ''}
                     onChange={(e) => setGajiPokok(Number(e.target.value))}
                     className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold"
                   />
@@ -552,8 +552,8 @@ export const GajiView: React.FC = () => {
                     <input
                       type="number"
                       min="0"
-                      step="10000"
-                      value={tunjanganMakan}
+                      step="any"
+                      value={tunjanganMakan || ''}
                       onChange={(e) => setTunjanganMakan(Number(e.target.value))}
                       className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
                     />
@@ -563,8 +563,8 @@ export const GajiView: React.FC = () => {
                     <input
                       type="number"
                       min="0"
-                      step="10000"
-                      value={tunjanganTransport}
+                      step="any"
+                      value={tunjanganTransport || ''}
                       onChange={(e) => setTunjanganTransport(Number(e.target.value))}
                       className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
                     />
@@ -577,8 +577,8 @@ export const GajiView: React.FC = () => {
                     <input
                       type="number"
                       min="0"
-                      step="50000"
-                      value={tunjanganJabatan}
+                      step="any"
+                      value={tunjanganJabatan || ''}
                       onChange={(e) => setTunjanganJabatan(Number(e.target.value))}
                       className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
                     />
@@ -588,8 +588,8 @@ export const GajiView: React.FC = () => {
                     <input
                       type="number"
                       min="0"
-                      step="50000"
-                      value={lembur}
+                      step="any"
+                      value={lembur || ''}
                       onChange={(e) => setLembur(Number(e.target.value))}
                       className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
                     />
@@ -602,8 +602,8 @@ export const GajiView: React.FC = () => {
                     <input
                       type="number"
                       min="0"
-                      step="50000"
-                      value={bonusKinerja}
+                      step="any"
+                      value={bonusKinerja || ''}
                       onChange={(e) => setBonusKinerja(Number(e.target.value))}
                       className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
                     />
@@ -613,8 +613,8 @@ export const GajiView: React.FC = () => {
                     <input
                       type="number"
                       min="0"
-                      step="50000"
-                      value={tunjanganLain}
+                      step="any"
+                      value={tunjanganLain || ''}
                       onChange={(e) => setTunjanganLain(Number(e.target.value))}
                       className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
                     />
@@ -643,8 +643,8 @@ export const GajiView: React.FC = () => {
                   <input
                     type="number"
                     min="0"
-                    step="50000"
-                    value={potonganKasbon}
+                    step="any"
+                    value={potonganKasbon || ''}
                     onChange={(e) => setPotonganKasbon(Number(e.target.value))}
                     className="w-full px-3 py-1.5 bg-amber-50/70 border border-amber-300 rounded-lg font-bold text-amber-900"
                   />
@@ -656,8 +656,8 @@ export const GajiView: React.FC = () => {
                     <input
                       type="number"
                       min="0"
-                      step="5000"
-                      value={bpjsKesehatan}
+                      step="any"
+                      value={bpjsKesehatan || ''}
                       onChange={(e) => setBpjsKesehatan(Number(e.target.value))}
                       className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
                     />
@@ -667,8 +667,8 @@ export const GajiView: React.FC = () => {
                     <input
                       type="number"
                       min="0"
-                      step="5000"
-                      value={bpjsKetenagakerjaan}
+                      step="any"
+                      value={bpjsKetenagakerjaan || ''}
                       onChange={(e) =>
                         setBpjsKetenagakerjaan(Number(e.target.value))
                       }
@@ -683,8 +683,8 @@ export const GajiView: React.FC = () => {
                     <input
                       type="number"
                       min="0"
-                      step="10000"
-                      value={pph21}
+                      step="any"
+                      value={pph21 || ''}
                       onChange={(e) => setPph21(Number(e.target.value))}
                       className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
                     />
@@ -694,8 +694,8 @@ export const GajiView: React.FC = () => {
                     <input
                       type="number"
                       min="0"
-                      step="10000"
-                      value={potonganAbsen}
+                      step="any"
+                      value={potonganAbsen || ''}
                       onChange={(e) => setPotonganAbsen(Number(e.target.value))}
                       className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
                     />
@@ -707,8 +707,8 @@ export const GajiView: React.FC = () => {
                   <input
                     type="number"
                     min="0"
-                    step="10000"
-                    value={potonganLain}
+                    step="any"
+                    value={potonganLain || ''}
                     onChange={(e) => setPotonganLain(Number(e.target.value))}
                     className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"
                   />
