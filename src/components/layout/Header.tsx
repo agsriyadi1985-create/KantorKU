@@ -26,6 +26,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
     return () => clearInterval(timer);
   }, []);
 
+  const isAdmin = currentUser?.role === 'Admin';
+
   const getPageTitle = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -79,7 +81,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   };
 
   const pageInfo = getPageTitle();
-  const isAdmin = currentUser?.role === 'Admin';
 
   // Format date in Indonesian locale based on client device local time
   const formattedDate = new Intl.DateTimeFormat('id-ID', {

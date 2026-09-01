@@ -5,6 +5,7 @@ import { Header } from './components/layout/Header';
 import { MobileNav } from './components/layout/MobileNav';
 import { ToastContainer } from './components/common/Toast';
 import { LoadingScreen } from './components/common/LoadingScreen';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { LoginView } from './components/views/LoginView';
 import { DashboardView } from './components/views/DashboardView';
 import { TaskView } from './components/views/TaskView';
@@ -77,9 +78,11 @@ const MainContent: React.FC = () => {
 
 export function App() {
   return (
-    <AppProvider>
-      <MainContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <MainContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
 
