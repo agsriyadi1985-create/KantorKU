@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Task, TaskStatus, Kasbon, SkemaKasbon } from '../../types';
+import { Task, TaskStatus, SkemaKasbon } from '../../types';
 import { Modal } from '../common/Modal';
+import { StaffRiwayatTransaksiModal } from './StaffRiwayatTransaksiModal';
 import {
   CheckSquare,
   CreditCard,
@@ -22,6 +23,7 @@ import {
   UserCheck,
   Save,
   Lock,
+  Receipt,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal, formatDateTime, getNamaBulan, normalizeNIK } from '../../utils/formatters';
 
@@ -34,6 +36,7 @@ export const StaffPortalView: React.FC = () => {
     taskList,
     fetchTasks,
     kasbonList,
+    gajiList,
     updateTaskStatus,
     addKasbon,
     companyInfo,
@@ -138,6 +141,7 @@ export const StaffPortalView: React.FC = () => {
   const onProcessCount = myTasks.filter((t) => t.status === 'On Process').length;
   const myKasbonList = kasbonList.filter((k) => k.karyawanId === activeKaryawan?.id);
   const activeKasbon = myKasbonList.find((k) => k.status === 'Aktif' && k.sisaPinjaman > 0);
+  const myGajiList = gajiList.filter((g) => g.karyawanId === activeKaryawan?.id);
 
   // ── 4. Modal States ──
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -147,6 +151,8 @@ export const StaffPortalView: React.FC = () => {
   const [catatanInput, setCatatanInput] = useState('');
 
   const [isKasbonModalOpen, setIsKasbonModalOpen] = useState(false);
+  const [isRiwayatModalOpen, setIsRiwayatModalOpen] = useState(false);
+  const [riwayatInitialTab, setRiwayatInitialTab] = useState<'gaji' | 'kasbon'>('gaji');
   const currentMonthYear = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}`;
   const [kasbonNominal, setKasbonNominal] = useState<number>(1000000);
   const [kasbonSkema, setKasbonSkema] = useState<SkemaKasbon>('Cicilan');
@@ -309,18 +315,40 @@ export const StaffPortalView: React.FC = () => {
             </div>
 
             {/* Sisa Kasbon */}
-            <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sisa Kasbon</span>
+            <div
+              onClick={() => {
+                setRiwayatInitialTab('kasbon');
+                setIsRiwayatModalOpen(true);
+              }}
+              title="Klik untuk melihat riwayat kasbon"
+              className="pt-2 border-t border-slate-200/60 flex items-center justify-between cursor-pointer hover:bg-slate-100/70 p-1 -mx-1 rounded-xl transition-all group"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-amber-700 transition-colors flex items-center gap-1">
+                <span>Sisa Kasbon</span>
+                <span className="text-[9px] text-amber-600 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                  (Rincian)
+                </span>
+              </span>
               <span className={`text-xs font-black font-mono ${activeKasbon ? 'text-amber-700' : 'text-slate-600'}`}>
                 {activeKasbon ? formatRupiah(activeKasbon.sisaPinjaman) : 'Rp 0 (Lunas)'}
               </span>
             </div>
 
             {/* Gaji Pokok */}
-            <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+            <div
+              onClick={() => {
+                setRiwayatInitialTab('gaji');
+                setIsRiwayatModalOpen(true);
+              }}
+              title="Klik untuk melihat riwayat slip gaji"
+              className="pt-2 border-t border-slate-200/60 flex items-center justify-between cursor-pointer hover:bg-slate-100/70 p-1 -mx-1 rounded-xl transition-all group"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 group-hover:text-emerald-700 transition-colors">
                 <Banknote className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Gaji Pokok</span>
+                <span className="text-[9px] text-emerald-600 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                  (Slip)
+                </span>
               </span>
               <span className="text-xs font-black font-mono text-emerald-700">
                 {formatRupiah(activeKaryawan?.gajiPokok || 0)}
@@ -353,57 +381,105 @@ export const StaffPortalView: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════
-          2. GRID MENU: TASK & PENGAJUAN KASBON
+          2. MENU UTAMA: TASK, PENGAJUAN KASBON & RIWAYAT TRANSAKSI
       ═══════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 gap-3.5">
-        {/* Card TASK */}
+      <div className="space-y-3">
+        {/* Row 1: TASK & PENGAJUAN KASBON */}
+        <div className="grid grid-cols-2 gap-3.5">
+          {/* Card TASK */}
+          <button
+            type="button"
+            onClick={() => {
+              fetchTasks();
+              setIsTaskModalOpen(true);
+            }}
+            className="bg-white hover:bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
+          >
+            <div className="space-y-2">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                <CheckSquare className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold tracking-wider uppercase text-brand-600 block">Menu Utama</span>
+                <h3 className="text-sm font-black text-slate-900 tracking-tight">TASK</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">Tugas & Status</p>
+              </div>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                {onProcessCount} On Process
+              </span>
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
+
+          {/* Card KASBON */}
+          <button
+            type="button"
+            onClick={() => setIsKasbonModalOpen(true)}
+            className="bg-white hover:bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
+          >
+            <div className="space-y-2">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold tracking-wider uppercase text-amber-600 block">Fasilitas</span>
+                <h3 className="text-sm font-black text-slate-900 tracking-tight leading-snug">PENGAJUAN KASBON</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">Bulan Berjalan</p>
+              </div>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                Ajukan
+              </span>
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
+        </div>
+
+        {/* Row 2: Card RIWAYAT TRANSAKSI (Pembayaran Gaji & Kasbon) */}
         <button
           type="button"
           onClick={() => {
-            fetchTasks();
-            setIsTaskModalOpen(true);
+            setRiwayatInitialTab('gaji');
+            setIsRiwayatModalOpen(true);
           }}
-          className="bg-white hover:bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
+          className="w-full bg-white hover:bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-left flex items-center justify-between group cursor-pointer active:scale-98"
         >
-          <div className="space-y-2">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-              <CheckSquare className="w-5 h-5" />
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-700 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0">
+              <Receipt className="w-5 h-5" />
             </div>
-            <div>
-              <span className="text-[10px] font-bold tracking-wider uppercase text-brand-600 block">Menu Utama</span>
-              <h3 className="text-sm font-black text-slate-900 tracking-tight">TASK</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Tugas & Status</p>
-            </div>
-          </div>
-          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
-              {onProcessCount} On Process
-            </span>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </button>
-
-        {/* Card KASBON */}
-        <button
-          type="button"
-          onClick={() => setIsKasbonModalOpen(true)}
-          className="bg-white hover:bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
-        >
-          <div className="space-y-2">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-              <CreditCard className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold tracking-wider uppercase text-amber-600 block">Fasilitas</span>
-              <h3 className="text-sm font-black text-slate-900 tracking-tight leading-snug">PENGAJUAN KASBON</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Bulan Berjalan</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-emerald-600 block">
+                  Laporan & Riwayat
+                </span>
+                <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Gaji & Kasbon
+                </span>
+              </div>
+              <h3 className="text-sm font-black text-slate-900 tracking-tight leading-snug">
+                RIWAYAT TRANSAKSI
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                Slip Pembayaran Gaji & Histori Cicilan Kasbon
+              </p>
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-              Ajukan
-            </span>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+          <div className="flex items-center gap-2 shrink-0 ml-2">
+            <div className="text-right hidden sm:block">
+              <span className="text-[10px] font-bold text-slate-700 block">
+                {myGajiList.length} Slip Gaji
+              </span>
+              <span className="text-[9px] font-semibold text-slate-400 block">
+                {myKasbonList.length} Kasbon
+              </span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-700 transition-colors">
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </div>
           </div>
         </button>
       </div>
@@ -795,6 +871,19 @@ export const StaffPortalView: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* ═══════════════════════════════════════════════════
+          MODAL: RIWAYAT TRANSAKSI (GAJI & KASBON)
+      ═══════════════════════════════════════════════════ */}
+      <StaffRiwayatTransaksiModal
+        isOpen={isRiwayatModalOpen}
+        onClose={() => setIsRiwayatModalOpen(false)}
+        karyawan={activeKaryawan}
+        companyInfo={companyInfo}
+        gajiList={gajiList}
+        kasbonList={kasbonList}
+        initialTab={riwayatInitialTab}
+      />
 
     </div>
   );
