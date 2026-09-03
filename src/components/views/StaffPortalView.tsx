@@ -381,105 +381,102 @@ export const StaffPortalView: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════
-          2. MENU UTAMA: TASK, PENGAJUAN KASBON & RIWAYAT TRANSAKSI
+          2. MENU UTAMA: TASK, PENGAJUAN KASBON & RIWAYAT TRANSAKSI (3 MENU SEJAJAR)
       ═══════════════════════════════════════════════════ */}
-      <div className="space-y-3">
-        {/* Row 1: TASK & PENGAJUAN KASBON */}
-        <div className="grid grid-cols-2 gap-3.5">
-          {/* Card TASK */}
-          <button
-            type="button"
-            onClick={() => {
-              fetchTasks();
-              setIsTaskModalOpen(true);
-            }}
-            className="bg-white hover:bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
-          >
-            <div className="space-y-2">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                <CheckSquare className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold tracking-wider uppercase text-brand-600 block">Menu Utama</span>
-                <h3 className="text-sm font-black text-slate-900 tracking-tight">TASK</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">Tugas & Status</p>
-              </div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        {/* Card 1: TASK */}
+        <button
+          type="button"
+          onClick={() => {
+            fetchTasks();
+            setIsTaskModalOpen(true);
+          }}
+          className="bg-white hover:bg-slate-50 p-3 sm:p-4 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
+        >
+          <div className="space-y-2">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+              <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
-                {onProcessCount} On Process
+            <div>
+              <span className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase text-brand-600 block truncate">
+                Menu Utama
               </span>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight leading-tight line-clamp-2 min-h-[2rem]">
+                TASK
+              </h3>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 truncate">
+                Tugas & Status
+              </p>
             </div>
-          </button>
+          </div>
+          <div className="mt-2.5 pt-2 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1">
+            <span className="px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200 truncate">
+              {onProcessCount} Process
+            </span>
+            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </div>
+        </button>
 
-          {/* Card KASBON */}
-          <button
-            type="button"
-            onClick={() => setIsKasbonModalOpen(true)}
-            className="bg-white hover:bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
-          >
-            <div className="space-y-2">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold tracking-wider uppercase text-amber-600 block">Fasilitas</span>
-                <h3 className="text-sm font-black text-slate-900 tracking-tight leading-snug">PENGAJUAN KASBON</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">Bulan Berjalan</p>
-              </div>
+        {/* Card 2: PENGAJUAN KASBON */}
+        <button
+          type="button"
+          onClick={() => setIsKasbonModalOpen(true)}
+          className="bg-white hover:bg-slate-50 p-3 sm:p-4 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
+        >
+          <div className="space-y-2">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                Ajukan
+            <div>
+              <span className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase text-amber-600 block truncate">
+                Fasilitas
               </span>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight leading-tight line-clamp-2 min-h-[2rem]">
+                PENGAJUAN KASBON
+              </h3>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 truncate">
+                Bulan Berjalan
+              </p>
             </div>
-          </button>
-        </div>
+          </div>
+          <div className="mt-2.5 pt-2 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1">
+            <span className="px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 truncate">
+              Ajukan
+            </span>
+            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </div>
+        </button>
 
-        {/* Row 2: Card RIWAYAT TRANSAKSI (Pembayaran Gaji & Kasbon) */}
+        {/* Card 3: RIWAYAT TRANSAKSI */}
         <button
           type="button"
           onClick={() => {
             setRiwayatInitialTab('gaji');
             setIsRiwayatModalOpen(true);
           }}
-          className="w-full bg-white hover:bg-slate-50 p-4 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-left flex items-center justify-between group cursor-pointer active:scale-98"
+          className="bg-white hover:bg-slate-50 p-3 sm:p-4 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
         >
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-700 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0">
-              <Receipt className="w-5 h-5" />
+          <div className="space-y-2">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-700 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+              <Receipt className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-bold tracking-wider uppercase text-emerald-600 block">
-                  Laporan & Riwayat
-                </span>
-                <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  Gaji & Kasbon
-                </span>
-              </div>
-              <h3 className="text-sm font-black text-slate-900 tracking-tight leading-snug">
+            <div>
+              <span className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase text-emerald-600 block truncate">
+                Keuangan
+              </span>
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight leading-tight line-clamp-2 min-h-[2rem]">
                 RIWAYAT TRANSAKSI
               </h3>
-              <p className="text-[11px] text-slate-500 mt-0.5 truncate">
-                Slip Pembayaran Gaji & Histori Cicilan Kasbon
+              <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 truncate">
+                Gaji & Kasbon
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0 ml-2">
-            <div className="text-right hidden sm:block">
-              <span className="text-[10px] font-bold text-slate-700 block">
-                {myGajiList.length} Slip Gaji
-              </span>
-              <span className="text-[9px] font-semibold text-slate-400 block">
-                {myKasbonList.length} Kasbon
-              </span>
-            </div>
-            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-700 transition-colors">
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </div>
+          <div className="mt-2.5 pt-2 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1">
+            <span className="px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 truncate">
+              {myGajiList.length > 0 ? `${myGajiList.length} Slip` : 'Lihat'}
+            </span>
+            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </div>
         </button>
       </div>
