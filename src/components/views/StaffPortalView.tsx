@@ -92,9 +92,10 @@ export const StaffPortalView: React.FC = () => {
     hour12: false,
   }).format(currentTime);
 
-  // ── 3. Tasks & Kasbon for this employee (Enhanced matching) ──
-  const myTasks = taskList.filter((t) => {
+  // ── 3. Helper: Cek apakah task ditugaskan ke staf yang sedang aktif / login ──
+  const isTaskAssignedToMe = (t: Task | null | undefined): boolean => {
     if (!t) return false;
+    if (currentUser?.role === 'Admin') return true;
 
     // 1. If assigned to ALL / Semua Karyawan
     if (
@@ -136,8 +137,9 @@ export const StaffPortalView: React.FC = () => {
     }
 
     return false;
-  });
+  };
 
+  const myTasks = taskList.filter((t) => isTaskAssignedToMe(t));
   const onProcessCount = myTasks.filter((t) => t.status === 'On Process').length;
   const myKasbonList = kasbonList.filter((k) => k.karyawanId === activeKaryawan?.id);
   const activeKasbon = myKasbonList.find((k) => k.status === 'Aktif' && k.sisaPinjaman > 0);
@@ -145,10 +147,13 @@ export const StaffPortalView: React.FC = () => {
 
   // ── 4. Modal States ──
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [taskFilterTab, setTaskFilterTab] = useState<'semua' | 'saya'>('semua');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<TaskStatus>('On Process');
   const [catatanInput, setCatatanInput] = useState('');
+
+  const displayedTasks = taskFilterTab === 'saya' ? myTasks : taskList;
 
   const [isKasbonModalOpen, setIsKasbonModalOpen] = useState(false);
   const [isRiwayatModalOpen, setIsRiwayatModalOpen] = useState(false);
@@ -172,6 +177,12 @@ export const StaffPortalView: React.FC = () => {
     e.preventDefault();
     if (!selectedTask) return;
     if (selectedTask.status === 'Selesai') {
+      setIsDetailModalOpen(false);
+      return;
+    }
+    // CEK HAK AKSES: Hanya staf yang ditugaskan atau Admin yang dapat mengubah status
+    if (!isTaskAssignedToMe(selectedTask)) {
+      alert('Hanya karyawan yang ditugaskan yang dapat mengedit dan mengubah status pekerjaan ini.');
       setIsDetailModalOpen(false);
       return;
     }
@@ -515,14 +526,37 @@ export const StaffPortalView: React.FC = () => {
         subtitle={`Staf: ${activeKaryawan?.nama || 'Karyawan'}`}
         maxWidth="lg"
       >
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
-          <span className="text-xs font-semibold text-slate-500">
-            {myTasks.length} Tugas Ditemukan
-          </span>
+        {/* Header Tab Filter: Semua Tugas vs Tugas Saya */}
+        <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-100 gap-2 flex-wrap">
+          <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+            <button
+              type="button"
+              onClick={() => setTaskFilterTab('semua')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                taskFilterTab === 'semua'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Semua Tugas ({taskList.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTaskFilterTab('saya')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                taskFilterTab === 'saya'
+                  ? 'bg-white text-brand-700 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Tugas Saya ({myTasks.length})
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => fetchTasks()}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5 text-brand-600" />
             <span>Segarkan</span>
@@ -530,60 +564,92 @@ export const StaffPortalView: React.FC = () => {
         </div>
 
         <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
-          {myTasks.length === 0 ? (
+          {displayedTasks.length === 0 ? (
             <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-3">
               <CheckSquare className="w-10 h-10 text-slate-300 mx-auto" />
               <div>
-                <p className="text-sm font-bold text-slate-700">Belum ada tugas yang ditugaskan</p>
-                <p className="text-xs text-slate-400 mt-1">Admin belum membuat tugas untuk Anda atau data sedang disinkronkan.</p>
+                <p className="text-sm font-bold text-slate-700">
+                  {taskFilterTab === 'saya'
+                    ? 'Belum ada tugas yang ditugaskan ke Anda'
+                    : 'Belum ada tugas pekerjaan'}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {taskFilterTab === 'saya'
+                    ? 'Anda dapat meninjau tugas pekerjaan kantor lainnya di tab "Semua Tugas".'
+                    : 'Admin belum membuat tugas pekerjaan.'}
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={() => fetchTasks()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Cek & Segarkan Data Tugas</span>
-              </button>
             </div>
           ) : (
-            myTasks.map((task) => (
-              <div key={task.id} className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    {getStatusBadge(task.status)}
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">{task.prioritas}</span>
-                  </div>
-                  <span className="text-[11px] font-semibold text-slate-500">Deadline: {formatTanggal(task.deadline)}</span>
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900">{task.judul}</h4>
-                  {task.deskripsi && <p className="text-xs text-slate-600 mt-1 leading-relaxed">{task.deskripsi}</p>}
-                </div>
-                {task.catatanStaff && (
-                  <div className="p-2.5 bg-sky-50 border border-sky-100 rounded-xl text-xs text-sky-900 flex items-start gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold text-[11px] block">Catatan:</span>
-                      <p className="text-[11px]">{task.catatanStaff}</p>
+            displayedTasks.map((task) => {
+              const isAssigned = isTaskAssignedToMe(task);
+              return (
+                <div key={task.id} className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {getStatusBadge(task.status)}
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                        {task.prioritas}
+                      </span>
+                      {isAssigned ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200 flex items-center gap-1">
+                          <UserCheck className="w-3 h-3" /> Tugas Anda
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 flex items-center gap-1">
+                          <UserCheck className="w-3 h-3 text-slate-400" /> {task.assignedToNama || 'Petugas Lain'}
+                        </span>
+                      )}
                     </div>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      Deadline: {formatTanggal(task.deadline)}
+                    </span>
                   </div>
-                )}
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400">
-                    Oleh: {task.createdBy || 'Admin'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenDetail(task)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>View / Detail</span>
-                  </button>
+
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">{task.judul}</h4>
+                    {task.deskripsi && <p className="text-xs text-slate-600 mt-1 leading-relaxed">{task.deskripsi}</p>}
+                  </div>
+
+                  {task.catatanStaff && (
+                    <div className="p-2.5 bg-sky-50 border border-sky-100 rounded-xl text-xs text-sky-900 flex items-start gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-[11px] block">Catatan Progres:</span>
+                        <p className="text-[11px]">{task.catatanStaff}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400">
+                      Oleh: {task.createdBy || 'Admin'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDetail(task)}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer ${
+                        isAssigned
+                          ? 'bg-brand-600 hover:bg-brand-700 text-white'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                      }`}
+                    >
+                      {isAssigned ? (
+                        <>
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Detail & Ubah Status</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Lihat (Hanya Baca)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </Modal>
@@ -661,7 +727,7 @@ export const StaffPortalView: React.FC = () => {
               </p>
             </div>
 
-            {/* Status Section: Read-Only if Selesai, Editable Form if not */}
+            {/* Status Section: Read-Only if Selesai OR Not Assigned to current employee */}
             {selectedTask.status === 'Selesai' ? (
               <div className="space-y-3 pt-3 border-t border-slate-200">
                 {/* Banner Status Selesai / Terkunci */}
@@ -689,6 +755,50 @@ export const StaffPortalView: React.FC = () => {
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                       Catatan Penyelesaian Petugas:
+                    </span>
+                    <p className="text-xs font-semibold text-slate-800">
+                      {selectedTask.catatanStaff}
+                    </p>
+                  </div>
+                )}
+
+                <div className="pt-2 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsDetailModalOpen(false)}
+                    className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            ) : !isTaskAssignedToMe(selectedTask) ? (
+              <div className="space-y-3 pt-3 border-t border-slate-200">
+                {/* Banner Bukan Petugas yang Ditugaskan */}
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="text-xs font-black text-amber-900 uppercase tracking-wide">
+                        Mode Hanya Lihat (Read-Only)
+                      </h4>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-md">
+                        Ditugaskan ke: {selectedTask.assignedToNama || 'Petugas Lain'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-800 leading-snug">
+                      Tugas ini ditugaskan kepada <b>{selectedTask.assignedToNama}</b>. Semua karyawan dapat melihat rincian instruksi tugas ini, namun hanya karyawan yang ditugaskan yang dapat mengedit atau mengubah status pengerjaannya.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Catatan Petugas (Jika Ada) */}
+                {selectedTask.catatanStaff && (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Catatan Progres Petugas:
                     </span>
                     <p className="text-xs font-semibold text-slate-800">
                       {selectedTask.catatanStaff}

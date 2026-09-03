@@ -18,8 +18,9 @@ import {
   XCircle,
   Shield,
   MessageSquare,
+  Lock,
 } from 'lucide-react';
-import { formatTanggal } from '../../utils/formatters';
+import { formatTanggal, normalizeNIK } from '../../utils/formatters';
 
 const STATUS_OPTIONS: TaskStatus[] = ['On Process', 'Selesai', 'Batal'];
 const PRIORITY_OPTIONS: TaskPriority[] = ['Rendah', 'Sedang', 'Tinggi', 'Mendesak'];
@@ -181,6 +182,35 @@ export const TaskView: React.FC = () => {
     }
   };
 
+  // Helper: Cek apakah task ditugaskan ke staf saat ini (atau jika user adalah admin)
+  const isTaskAssignedToMe = (t: Task | null | undefined): boolean => {
+    if (!t) return false;
+    if (isAdmin) return true;
+    if (!currentUser) return false;
+
+    if (
+      t.assignedTo === 'ALL' ||
+      t.assignedToNama?.toUpperCase().includes('ALL') ||
+      t.assignedToNama?.toLowerCase().includes('semua')
+    ) {
+      return true;
+    }
+
+    if (currentUser.karyawanId && t.assignedTo === currentUser.karyawanId) return true;
+    const userNormNIK = normalizeNIK(currentUser.username);
+    if (t.assignedTo && normalizeNIK(t.assignedTo) === userNormNIK) return true;
+
+    const userName = (currentUser.nama || '').trim().toLowerCase();
+    const taskName = (t.assignedToNama || '').trim().toLowerCase();
+    if (userName && taskName) {
+      if (taskName.includes(userName) || userName.includes(taskName)) return true;
+      const userFirst = userName.split(' ')[0];
+      const taskFirst = taskName.split(' ')[0];
+      if (userFirst && taskFirst && userFirst === taskFirst && userFirst.length > 2) return true;
+    }
+    return false;
+  };
+
   // Handlers for Status Change Modal (Available for Staff & Admin)
   const handleOpenStatusModal = (task: Task) => {
     setStatusEditingTask(task);
@@ -192,6 +222,11 @@ export const TaskView: React.FC = () => {
   const handleStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!statusEditingTask) return;
+    if (!isTaskAssignedToMe(statusEditingTask)) {
+      alert('Hanya karyawan yang ditugaskan yang dapat mengubah status pekerjaan ini.');
+      setIsStatusModalOpen(false);
+      return;
+    }
     await updateTaskStatus(statusEditingTask.id, selectedNewStatus, statusCatatanStaff.trim());
     setIsStatusModalOpen(false);
   };
@@ -522,16 +557,28 @@ export const TaskView: React.FC = () => {
 
                 {/* Card Bottom / Action Footer */}
                 <div className="px-5 py-3.5 bg-slate-50/80 border-t border-slate-100 rounded-b-2xl flex items-center justify-between gap-2">
-                  {/* Status Change Button (Available for Staff & Admin) */}
-                  <button
-                    type="button"
-                    onClick={() => handleOpenStatusModal(task)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer"
-                    title="Ubah Status Pekerjaan (Selesai, On Process, Batal)"
-                  >
-                    <Clock className="w-3.5 h-3.5 text-brand-600" />
-                    <span>Ubah Status</span>
-                  </button>
+                  {/* Status Change Button (Available for Assigned Staff & Admin) */}
+                  {isTaskAssignedToMe(task) ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenStatusModal(task)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer"
+                      title="Ubah Status Pekerjaan (Selesai, On Process, Batal)"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-brand-600" />
+                      <span>Ubah Status</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenStatusModal(task)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                      title="Lihat Rincian Tugas (Hanya Baca)"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Lihat Rincian</span>
+                    </button>
+                  )}
 
                   {/* Admin Specific Actions: Full Edit & Delete */}
                   {isAdmin && (
@@ -561,77 +608,132 @@ export const TaskView: React.FC = () => {
         </div>
       )}
 
-      {/* 6. MODAL: Ubah Status Pekerjaan (Untuk Staff & Admin) */}
+      {/* 6. MODAL: Ubah Status / Rincian Pekerjaan (Untuk Staff & Admin) */}
       <Modal
         isOpen={isStatusModalOpen}
         onClose={() => setIsStatusModalOpen(false)}
-        title="Ubah Status Pekerjaan"
+        title={statusEditingTask && !isTaskAssignedToMe(statusEditingTask) ? "Rincian Tugas Pekerjaan" : "Ubah Status Pekerjaan"}
         subtitle={statusEditingTask ? `Tugas: "${statusEditingTask.judul}"` : ''}
         maxWidth="md"
       >
-        <form onSubmit={handleStatusSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Pilih Status Pekerjaan *
-            </label>
-            <div className="grid grid-cols-3 gap-2.5">
-              {STATUS_OPTIONS.map((st) => {
-                const isSelected = selectedNewStatus === st;
-                return (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setSelectedNewStatus(st)}
-                    className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      isSelected
-                        ? st === 'Selesai'
-                          ? 'bg-emerald-500 text-white border-emerald-600 shadow-md'
-                          : st === 'On Process'
-                          ? 'bg-sky-500 text-white border-sky-600 shadow-md'
-                          : 'bg-rose-500 text-white border-rose-600 shadow-md'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    {st === 'Selesai' && <CheckCircle2 className="w-4 h-4" />}
-                    {st === 'On Process' && <Clock className="w-4 h-4" />}
-                    {st === 'Batal' && <XCircle className="w-4 h-4" />}
-                    <span>{st}</span>
-                  </button>
-                );
-              })}
+        {statusEditingTask && !isTaskAssignedToMe(statusEditingTask) ? (
+          <div className="space-y-4">
+            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-black text-amber-900 uppercase tracking-wide">
+                  Mode Hanya Lihat (Read-Only)
+                </h4>
+                <p className="text-[11px] text-amber-800 leading-snug">
+                  Tugas ini ditugaskan kepada <b>{statusEditingTask.assignedToNama}</b>. Semua staf dapat membaca rincian tugas ini, namun hanya staf yang ditugaskan yang dapat mengedit atau mengubah status pengerjaannya.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-2">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
+                <span className="text-slate-500 font-medium">Status Pengerjaan:</span>
+                <div>{getStatusBadge(statusEditingTask.status)}</div>
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
+                <span className="text-slate-500 font-medium">Prioritas:</span>
+                <div>{getPriorityBadge(statusEditingTask.prioritas)}</div>
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
+                <span className="text-slate-500 font-medium">Batas Waktu (Deadline):</span>
+                <span className="font-bold text-slate-800">{formatTanggal(statusEditingTask.deadline)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Ditugaskan Kepada:</span>
+                <span className="font-bold text-slate-800">{statusEditingTask.assignedToNama}</span>
+              </div>
+              {statusEditingTask.catatanStaff && (
+                <div className="pt-2 border-t border-slate-200/60 space-y-1">
+                  <span className="text-slate-500 font-medium block">Catatan Progres Staf:</span>
+                  <p className="text-slate-800 font-semibold bg-white p-2.5 rounded-xl border border-slate-200">
+                    {statusEditingTask.catatanStaff}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setIsStatusModalOpen(false)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+              >
+                Tutup
+              </button>
             </div>
           </div>
+        ) : (
+          <form onSubmit={handleStatusSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Pilih Status Pekerjaan *
+              </label>
+              <div className="grid grid-cols-3 gap-2.5">
+                {STATUS_OPTIONS.map((st) => {
+                  const isSelected = selectedNewStatus === st;
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setSelectedNewStatus(st)}
+                      className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        isSelected
+                          ? st === 'Selesai'
+                            ? 'bg-emerald-500 text-white border-emerald-600 shadow-md'
+                            : st === 'On Process'
+                            ? 'bg-sky-500 text-white border-sky-600 shadow-md'
+                            : 'bg-rose-500 text-white border-rose-600 shadow-md'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {st === 'Selesai' && <CheckCircle2 className="w-4 h-4" />}
+                      {st === 'On Process' && <Clock className="w-4 h-4" />}
+                      {st === 'Batal' && <XCircle className="w-4 h-4" />}
+                      <span>{st}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Catatan Progres / Keterangan Staf (Opsional)
-            </label>
-            <textarea
-              rows={3}
-              value={statusCatatanStaff}
-              onChange={(e) => setStatusCatatanStaff(e.target.value)}
-              placeholder="Contoh: Pekerjaan telah diselesaikan dan dokumen sudah dikirim ke direksi..."
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Catatan Progres / Keterangan Staf (Opsional)
+              </label>
+              <textarea
+                rows={3}
+                value={statusCatatanStaff}
+                onChange={(e) => setStatusCatatanStaff(e.target.value)}
+                placeholder="Contoh: Pekerjaan telah diselesaikan dan dokumen sudah dikirim ke direksi..."
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setIsStatusModalOpen(false)}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              Simpan Status
-            </button>
-          </div>
-        </form>
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsStatusModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Simpan Status
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       {/* 7. MODAL: Tambah / Edit Tugas Lengkap (Admin Only) */}
