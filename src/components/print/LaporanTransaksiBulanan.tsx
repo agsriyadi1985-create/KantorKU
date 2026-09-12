@@ -337,46 +337,6 @@ export const LaporanTransaksiBulanan: React.FC<LaporanTransaksiBulananProps> = (
           </div>
         </div>
 
-        {/* ============================================================
-            5. KOLOM PENGESAHAN DOKUMEN RESMI (TANDA TANGAN & STEMPEL)
-        ============================================================ */}
-        <div className="pt-3 border-t border-slate-200">
-          <div className="flex justify-end text-xs text-slate-600 mb-6">
-            <p>
-              Tanjungpinang, {todayFormatted}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-8 text-center text-xs">
-            {/* Sisi Kiri: Dibuat / Dibukukan */}
-            <div>
-              <p className="font-medium text-slate-600 mb-1">Dibuat / Dibukukan Oleh,</p>
-              <p className="text-[10px] text-slate-400 mb-16">
-                {companyInfo.financeTitle || 'Bagian Keuangan & Administrasi'}
-              </p>
-              <p className="font-bold text-slate-900 border-b border-slate-800 inline-block px-4 pb-0.5 min-w-[160px]">
-                {companyInfo.financeName || petugasName || 'Siti Rahmawati, S.Ak.'}
-              </p>
-              <p className="text-[10px] text-slate-500 mt-0.5">
-                Staf Keuangan / Admin
-              </p>
-            </div>
-
-            {/* Sisi Kanan: Mengetahui / Disetujui */}
-            <div>
-              <p className="font-medium text-slate-600 mb-1">Mengetahui & Menyetujui,</p>
-              <p className="text-[10px] text-slate-400 mb-16">
-                {companyInfo.leaderTitle || 'Pimpinan / Direktur Utama'}
-              </p>
-              <p className="font-bold text-slate-900 border-b border-slate-800 inline-block px-4 pb-0.5 min-w-[160px]">
-                {companyInfo.leaderName || 'Hendra Gunawan, S.E., M.M.'}
-              </p>
-              <p className="text-[10px] text-slate-500 mt-0.5">
-                {companyInfo.leaderTitle || 'Direktur'}
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Footer Document Code */}
         <div className="mt-8 pt-2 border-t border-slate-200 flex items-center justify-between text-[9px] text-slate-400">
