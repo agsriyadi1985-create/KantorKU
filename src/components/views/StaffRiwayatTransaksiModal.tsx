@@ -20,6 +20,8 @@ import {
   ReceiptText,
   Search,
   ShieldCheck,
+  ArrowLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   formatRupiah,
@@ -37,7 +39,7 @@ interface StaffRiwayatTransaksiModalProps {
   kasbonList: Kasbon[];
   pengeluaranList?: PengeluaranRutin[];
   transaksiHarianList?: TransaksiHarian[];
-  initialTab?: 'gaji' | 'kasbon' | 'transaksi_rutin' | 'transaksi_harian';
+  initialTab?: 'launchpad' | 'gaji' | 'kasbon' | 'transaksi_rutin' | 'transaksi_harian';
 }
 
 export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProps> = ({
@@ -49,7 +51,7 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
   kasbonList,
   pengeluaranList: propPengeluaranList,
   transaksiHarianList: propTransaksiList,
-  initialTab = 'gaji',
+  initialTab = 'launchpad',
 }) => {
   const { transaksiHarianList: contextTransaksiList, pengeluaranList: contextPengeluaranList } = useApp();
   const allTransaksi = useMemo(() => {
@@ -60,7 +62,7 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
     return propPengeluaranList || contextPengeluaranList || [];
   }, [propPengeluaranList, contextPengeluaranList]);
 
-  const [activeTab, setActiveTab] = useState<'gaji' | 'kasbon' | 'transaksi_rutin' | 'transaksi_harian'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'launchpad' | 'gaji' | 'kasbon' | 'transaksi_rutin' | 'transaksi_harian'>(initialTab);
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
 
@@ -241,103 +243,229 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
       <Modal
         isOpen={isOpen && !selectedSlipGaji}
         onClose={onClose}
-        title="Riwayat Transaksi"
-        subtitle={`Karyawan: ${karyawan?.nama || 'Staf'} (${karyawan?.nik || '-'})`}
-        maxWidth={activeTab === 'transaksi_harian' || activeTab === 'transaksi_rutin' ? '3xl' : '2xl'}
+        title={
+          activeTab === 'launchpad'
+            ? 'Riwayat Transaksi'
+            : activeTab === 'gaji'
+            ? 'Riwayat Gaji & Slip'
+            : activeTab === 'kasbon'
+            ? 'Riwayat Kasbon & Cicilan'
+            : activeTab === 'transaksi_rutin'
+            ? 'Transaksi Rutin (Operasional)'
+            : 'Transaksi Harian (Buku Pengeluaran)'
+        }
+        subtitle={
+          activeTab === 'launchpad'
+            ? `Pilih kategori transaksi yang ingin dilihat (${karyawan?.nama || 'Staf'})`
+            : `Karyawan: ${karyawan?.nama || 'Staf'} (${karyawan?.nik || '-'})`
+        }
+        maxWidth={
+          activeTab === 'launchpad'
+            ? '2xl'
+            : activeTab === 'transaksi_harian' || activeTab === 'transaksi_rutin'
+            ? '3xl'
+            : '2xl'
+        }
       >
         <div className="space-y-4">
-          {/* Tab Selector Buttons */}
-          <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 gap-1 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setActiveTab('gaji')}
-              className={`flex-1 min-w-[105px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                activeTab === 'gaji'
-                  ? 'bg-white text-emerald-700 shadow-sm border border-emerald-100 font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <Banknote className={`w-4 h-4 shrink-0 ${activeTab === 'gaji' ? 'text-emerald-600' : 'text-slate-400'}`} />
-              <span className="truncate">Gaji</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  activeTab === 'gaji'
-                    ? 'bg-emerald-100 text-emerald-800 font-bold'
-                    : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                {myGaji.length}
-              </span>
-            </button>
+          {/* ============================================================
+              LAUNCHPAD MENU: TAMPILKAN PILIHAN KATEGORI TRANSAKSI
+              ============================================================ */}
+          {activeTab === 'launchpad' && (
+            <div className="space-y-4 py-1">
+              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center shrink-0 text-brand-600">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">
+                    Menu Riwayat Transaksi
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Silakan pilih kategori data transaksi yang ingin Anda buka di bawah ini:
+                  </p>
+                </div>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('kasbon')}
-              className={`flex-1 min-w-[105px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                activeTab === 'kasbon'
-                  ? 'bg-white text-amber-700 shadow-sm border border-amber-100 font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <CreditCard className={`w-4 h-4 shrink-0 ${activeTab === 'kasbon' ? 'text-amber-600' : 'text-slate-400'}`} />
-              <span className="truncate">Kasbon</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  activeTab === 'kasbon'
-                    ? 'bg-amber-100 text-amber-800 font-bold'
-                    : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                {myKasbon.length}
-              </span>
-            </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 1. Gaji */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('gaji')}
+                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 border border-emerald-200/80 hover:border-emerald-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform shrink-0">
+                      <Banknote className="w-6 h-6" />
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                      {myGaji.length} Slip Gaji
+                    </span>
+                  </div>
+                  <div className="mt-3.5">
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                        Gaji
+                      </h5>
+                      <ChevronRight className="w-4 h-4 text-emerald-600 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                      Riwayat slip gaji bulanan, rincian pendapatan resmi, potongan & cetak dokumen.
+                    </p>
+                  </div>
+                </button>
 
-            {/* Tab: Transaksi Rutin (Pengeluaran Rutin Kantor) */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('transaksi_rutin')}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                activeTab === 'transaksi_rutin'
-                  ? 'bg-white text-emerald-800 shadow-sm border border-emerald-100 font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <Receipt className={`w-4 h-4 shrink-0 ${activeTab === 'transaksi_rutin' ? 'text-emerald-600' : 'text-slate-400'}`} />
-              <span className="truncate">Transaksi Rutin</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  activeTab === 'transaksi_rutin'
-                    ? 'bg-emerald-100 text-emerald-800 font-bold'
-                    : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                {allPengeluaran.length}
-              </span>
-            </button>
+                {/* 2. Kasbon */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('kasbon')}
+                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 border border-amber-200/80 hover:border-amber-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md shadow-amber-600/20 group-hover:scale-105 transition-transform shrink-0">
+                      <CreditCard className="w-6 h-6" />
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                      {myKasbon.length} Pengajuan
+                    </span>
+                  </div>
+                  <div className="mt-3.5">
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-amber-700 transition-colors">
+                        Kasbon
+                      </h5>
+                      <ChevronRight className="w-4 h-4 text-amber-600 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                      Riwayat pinjaman staf, sisa cicilan aktif, tenor & riwayat potongan gaji.
+                    </p>
+                  </div>
+                </button>
 
-            {/* Tab: Transaksi Harian */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('transaksi_harian')}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                activeTab === 'transaksi_harian'
-                  ? 'bg-white text-brand-700 shadow-sm border border-brand-100 font-extrabold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <ReceiptText className={`w-4 h-4 shrink-0 ${activeTab === 'transaksi_harian' ? 'text-brand-600' : 'text-slate-400'}`} />
-              <span className="truncate">Transaksi Harian</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  activeTab === 'transaksi_harian'
-                    ? 'bg-brand-100 text-brand-800 font-bold'
-                    : 'bg-slate-200 text-slate-600'
-                }`}
+                {/* 3. Transaksi Rutin */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('transaksi_rutin')}
+                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-gradient-to-br from-teal-50/70 via-white to-cyan-50/40 border border-teal-200/80 hover:border-teal-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20 group-hover:scale-105 transition-transform shrink-0">
+                      <Receipt className="w-6 h-6" />
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-teal-100 text-teal-800 border border-teal-200 shrink-0">
+                      {allPengeluaran.length} Transaksi
+                    </span>
+                  </div>
+                  <div className="mt-3.5">
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-teal-700 transition-colors">
+                        Transaksi Rutin
+                      </h5>
+                      <ChevronRight className="w-4 h-4 text-teal-600 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                      Pengeluaran rutin & tagihan operasional kantor tersusun per bulan (Kwitansi).
+                    </p>
+                  </div>
+                </button>
+
+                {/* 4. Transaksi Harian */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('transaksi_harian')}
+                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 border border-indigo-200/80 hover:border-brand-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform shrink-0">
+                      <ReceiptText className="w-6 h-6" />
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
+                      {allTransaksi.length} Transaksi
+                    </span>
+                  </div>
+                  <div className="mt-3.5">
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-brand-700 transition-colors">
+                        Transaksi Harian
+                      </h5>
+                      <ChevronRight className="w-4 h-4 text-brand-600 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                      Buku kas pengeluaran harian kantor tersusun rapi per bulan transaksi (TRX).
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================
+              SUB-NAV: TOMBOL KEMBALI KE LAUNCHPAD + TABS SWITCHER CEPAT
+              ============================================================ */}
+          {activeTab !== 'launchpad' && (
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-200/80">
+              <button
+                type="button"
+                onClick={() => setActiveTab('launchpad')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer border border-slate-200 shrink-0"
               >
-                {allTransaksi.length}
-              </span>
-            </button>
-          </div>
+                <ArrowLeft className="w-3.5 h-3.5 text-slate-600" />
+                <span>Menu Utama</span>
+              </button>
+
+              {/* Quick Tab Selector */}
+              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 gap-0.5 overflow-x-auto text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('gaji')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
+                    activeTab === 'gaji'
+                      ? 'bg-white text-emerald-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Gaji</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('kasbon')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
+                    activeTab === 'kasbon'
+                      ? 'bg-white text-amber-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <CreditCard className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Kasbon</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('transaksi_rutin')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
+                    activeTab === 'transaksi_rutin'
+                      ? 'bg-white text-teal-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Receipt className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Rutin</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('transaksi_harian')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
+                    activeTab === 'transaksi_harian'
+                      ? 'bg-white text-brand-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <ReceiptText className="w-3.5 h-3.5 text-brand-600" />
+                  <span>Harian</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ============================================================
               TAB 1: PEMBAYARAN GAJI (PAYROLL / SLIP GAJI)
@@ -985,8 +1113,20 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
             </div>
           )}
 
-          {/* Footer Close Button */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end">
+          {/* Footer Navigation & Close */}
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+            {activeTab !== 'launchpad' ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab('launchpad')}
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 border border-slate-200"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Menu Utama</span>
+              </button>
+            ) : (
+              <div />
+            )}
             <button
               type="button"
               onClick={onClose}

@@ -159,7 +159,7 @@ export const StaffPortalView: React.FC = () => {
 
   const [isKasbonModalOpen, setIsKasbonModalOpen] = useState(false);
   const [isRiwayatModalOpen, setIsRiwayatModalOpen] = useState(false);
-  const [riwayatInitialTab, setRiwayatInitialTab] = useState<'gaji' | 'kasbon' | 'transaksi_rutin' | 'transaksi_harian'>('gaji');
+  const [riwayatInitialTab, setRiwayatInitialTab] = useState<'launchpad' | 'gaji' | 'kasbon' | 'transaksi_rutin' | 'transaksi_harian'>('launchpad');
   const currentMonthYear = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}`;
   const [kasbonNominal, setKasbonNominal] = useState<number>(1000000);
   const [kasbonSkema, setKasbonSkema] = useState<SkemaKasbon>('Cicilan');
@@ -464,7 +464,7 @@ export const StaffPortalView: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            setRiwayatInitialTab('transaksi_harian');
+            setRiwayatInitialTab('launchpad');
             setIsRiwayatModalOpen(true);
           }}
           className="bg-white hover:bg-slate-50 p-3 sm:p-4 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"
