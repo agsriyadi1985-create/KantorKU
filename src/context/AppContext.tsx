@@ -398,7 +398,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const { data, error } = await supabase.from('pengeluaran_rutin').select('*').order('created_at', { ascending: false });
       if (!error && data) {
         const mapped = data.map(r => mapPengeluaranFromDB(r as Record<string, unknown>));
-        const clean = mapped.filter(p => !p.id.startsWith('peng-0') && !p.id.startsWith('dummy-'));
+        // Hanya ambil pengeluaran rutin murni (nomor yang tidak diawali TRX-)
+        const clean = mapped.filter(p => !p.nomorKwitansi.startsWith('TRX-') && !p.id.startsWith('peng-0') && !p.id.startsWith('dummy-'));
         setPengeluaranList(clean);
       }
     } catch {
@@ -408,8 +409,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const fetchTransaksiHarian = useCallback(async () => {
     try {
+      // 1. Coba fetch dari tabel transaksi_harian terlebih dahulu (jika tabel sudah ada di Supabase)
       const { data, error } = await supabase.from('transaksi_harian').select('*').order('tanggal', { ascending: false });
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         const mapped = data.map(r => mapTransaksiHarianFromDB(r as Record<string, unknown>));
         const clean = mapped.filter(t => !t.id.startsWith('trx-0') && !t.id.startsWith('dummy-'));
         setTransaksiHarianList(clean);
@@ -418,20 +420,53 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         } catch {
           // ignore
         }
-      } else {
-        // Fallback ke localStorage saat tabel Supabase belum ada / error
+        return;
+      }
+
+      // 2. Jika tabel transaksi_harian belum ada di Supabase, fallback baca dari pengeluaran_rutin (nomor TRX-)
+      const { data: pengData, error: pengError } = await supabase
+        .from('pengeluaran_rutin')
+        .select('*')
+        .ilike('nomor_kwitansi', 'TRX-%')
+        .order('tanggal', { ascending: false });
+
+      if (!pengError && pengData && pengData.length > 0) {
+        const mapped: TransaksiHarian[] = pengData.map(r => ({
+          id: r.id as string,
+          nomorTransaksi: (r.nomor_kwitansi as string) || '',
+          tanggal: (r.tanggal as string) || '',
+          kategori: (r.kategori as string) || 'Lain-lain',
+          keterangan: (r.keperluan as string) || '',
+          nominal: Number(r.nominal) || 0,
+          metodeBayar: (r.metode_bayar as MetodeBayar) || 'Kas Tunai',
+          penerima: (r.dibayarkan_kepada as string) || '-',
+          penanggungJawab: (r.petugas as string) || '',
+          buktiNota: r.catatan && r.catatan !== 'TRX_HARIAN' ? (r.catatan as string) : '',
+          createdAt: (r.created_at as string) || undefined,
+          updatedAt: (r.created_at as string) || undefined,
+        }));
+        const clean = mapped.filter(t => !t.id.startsWith('trx-0') && !t.id.startsWith('dummy-'));
+        setTransaksiHarianList(clean);
         try {
-          const saved = localStorage.getItem(TRANSAKSI_HARIAN_STORAGE_KEY);
-          if (saved) {
-            const parsed: TransaksiHarian[] = JSON.parse(saved);
-            const clean = parsed.filter(t => !t.id.startsWith('trx-0') && !t.id.startsWith('dummy-'));
-            setTransaksiHarianList(clean);
-          } else {
-            setTransaksiHarianList([]);
-          }
+          localStorage.setItem(TRANSAKSI_HARIAN_STORAGE_KEY, JSON.stringify(clean));
         } catch {
+          // ignore
+        }
+        return;
+      }
+
+      // 3. Fallback ke localStorage saat offline
+      try {
+        const saved = localStorage.getItem(TRANSAKSI_HARIAN_STORAGE_KEY);
+        if (saved) {
+          const parsed: TransaksiHarian[] = JSON.parse(saved);
+          const clean = parsed.filter(t => !t.id.startsWith('trx-0') && !t.id.startsWith('dummy-'));
+          setTransaksiHarianList(clean);
+        } else {
           setTransaksiHarianList([]);
         }
+      } catch {
+        setTransaksiHarianList([]);
       }
     } catch (err) {
       console.warn('fetchTransaksiHarian catch fallback:', err);
@@ -647,7 +682,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'karyawan' }, () => { fetchKaryawan(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'kasbon' }, () => { fetchKasbon(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'gaji' }, () => { fetchGaji(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pengeluaran_rutin' }, () => { fetchPengeluaran(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pengeluaran_rutin' }, () => {
+        fetchPengeluaran();
+        fetchTransaksiHarian();
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'transaksi_harian' }, () => { fetchTransaksiHarian(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'company_info' }, () => { fetchCompany(); })
       .subscribe();
@@ -1461,16 +1499,48 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         keterangan: data.keterangan,
         nominal: data.nominal,
         metode_bayar: data.metodeBayar,
-        penerima: data.penerima,
-        penanggung_jawab: data.penanggungJawab,
+        penerima: data.penerima || '-',
+        penanggung_jawab: data.penanggungJawab || '',
         bukti_nota: data.buktiNota || '',
         created_at: now,
         updated_at: now,
       }).select().single();
 
-      const newTrx: TransaksiHarian = result
-        ? mapTransaksiHarianFromDB(result as Record<string, unknown>)
-        : {
+      let newTrx: TransaksiHarian;
+
+      if (!error && result) {
+        newTrx = mapTransaksiHarianFromDB(result as Record<string, unknown>);
+      } else {
+        // Fallback simpan ke tabel pengeluaran_rutin (nomor_kwitansi = nomorTransaksi) agar tersinkronisasi lintas perangkat (Web & Mobile Staff)
+        const { data: fallbackResult } = await supabase.from('pengeluaran_rutin').insert({
+          nomor_kwitansi: nomorTransaksi,
+          tanggal: data.tanggal,
+          kategori: data.kategori,
+          nominal: data.nominal,
+          metode_bayar: data.metodeBayar,
+          dibayarkan_kepada: data.penerima || '-',
+          petugas: data.penanggungJawab || '',
+          keperluan: data.keterangan,
+          catatan: data.buktiNota || 'TRX_HARIAN',
+        }).select().maybeSingle();
+
+        if (fallbackResult) {
+          newTrx = {
+            id: fallbackResult.id,
+            nomorTransaksi: fallbackResult.nomor_kwitansi,
+            tanggal: fallbackResult.tanggal,
+            kategori: fallbackResult.kategori,
+            keterangan: fallbackResult.keperluan,
+            nominal: Number(fallbackResult.nominal) || 0,
+            metodeBayar: fallbackResult.metode_bayar || 'Kas Tunai',
+            penerima: fallbackResult.dibayarkan_kepada || '-',
+            penanggungJawab: fallbackResult.petugas || '',
+            buktiNota: fallbackResult.catatan && fallbackResult.catatan !== 'TRX_HARIAN' ? fallbackResult.catatan : '',
+            createdAt: fallbackResult.created_at,
+            updatedAt: fallbackResult.created_at,
+          };
+        } else {
+          newTrx = {
             id: generateId(),
             nomorTransaksi,
             tanggal: data.tanggal,
@@ -1478,12 +1548,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             keterangan: data.keterangan,
             nominal: data.nominal,
             metodeBayar: data.metodeBayar,
-            penerima: data.penerima,
-            penanggungJawab: data.penanggungJawab,
+            penerima: data.penerima || '-',
+            penanggungJawab: data.penanggungJawab || '',
             buktiNota: data.buktiNota || '',
             createdAt: now,
             updatedAt: now,
           };
+        }
+      }
 
       setTransaksiHarianList(prev => {
         const updated = [newTrx, ...prev.filter(t => t.id !== newTrx.id)];
@@ -1494,10 +1566,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
         return updated;
       });
-
-      if (error) {
-        console.warn('Supabase transaksi_harian insert fallback to localStorage:', error.message);
-      }
 
       addToast('success', `Transaksi ${nomorTransaksi} berhasil dicatat`);
       return newTrx;
@@ -1521,7 +1589,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (data.penanggungJawab !== undefined) updateData.penanggung_jawab = data.penanggungJawab;
       if (data.buktiNota !== undefined) updateData.bukti_nota = data.buktiNota;
 
-      const { data: result, error } = await supabase.from('transaksi_harian').update(updateData).eq('id', id).select().single();
+      const { data: result } = await supabase.from('transaksi_harian').update(updateData).eq('id', id).select().maybeSingle();
+
+      // Sinkronkan juga ke pengeluaran_rutin jika data tersimpan di sana
+      const pengUpdate: Record<string, unknown> = {};
+      if (data.tanggal !== undefined) pengUpdate.tanggal = data.tanggal;
+      if (data.kategori !== undefined) pengUpdate.kategori = data.kategori;
+      if (data.keterangan !== undefined) pengUpdate.keperluan = data.keterangan;
+      if (data.nominal !== undefined) pengUpdate.nominal = data.nominal;
+      if (data.metodeBayar !== undefined) pengUpdate.metode_bayar = data.metodeBayar;
+      if (data.penerima !== undefined) pengUpdate.dibayarkan_kepada = data.penerima;
+      if (data.penanggungJawab !== undefined) pengUpdate.petugas = data.penanggungJawab;
+      if (data.buktiNota !== undefined) pengUpdate.catatan = data.buktiNota;
+      await supabase.from('pengeluaran_rutin').update(pengUpdate).eq('id', id);
 
       setTransaksiHarianList(prev => {
         const updated = prev.map(t => {
@@ -1538,10 +1618,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return updated;
       });
 
-      if (error) {
-        console.warn('Supabase transaksi_harian update fallback to localStorage:', error.message);
-      }
-
       addToast('success', 'Transaksi harian berhasil diperbarui');
     } catch (err) {
       console.error(err);
@@ -1551,10 +1627,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deleteTransaksiHarian = useCallback(async (id: string) => {
     try {
-      const { error } = await supabase.from('transaksi_harian').delete().eq('id', id);
-      if (error) {
-        console.warn('Supabase delete error, proceeding with local delete:', error.message);
-      }
+      await supabase.from('transaksi_harian').delete().eq('id', id);
+      await supabase.from('pengeluaran_rutin').delete().eq('id', id);
+
       setTransaksiHarianList(prev => {
         const updated = prev.filter(t => t.id !== id);
         try {

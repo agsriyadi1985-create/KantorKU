@@ -464,7 +464,7 @@ export const StaffPortalView: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            setRiwayatInitialTab('gaji');
+            setRiwayatInitialTab('transaksi_harian');
             setIsRiwayatModalOpen(true);
           }}
           className="bg-white hover:bg-slate-50 p-3 sm:p-4 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer active:scale-97"

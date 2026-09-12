@@ -62,11 +62,18 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
 
   const [activeTab, setActiveTab] = useState<'gaji' | 'kasbon' | 'transaksi_rutin' | 'transaksi_harian'>(initialTab);
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
+
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
     if (isOpen && initialTab) {
       setActiveTab(initialTab);
     }
+  }
+
+  if (initialTab !== prevInitialTab) {
+    setPrevInitialTab(initialTab);
+    setActiveTab(initialTab);
   }
 
   const [selectedSlipGaji, setSelectedSlipGaji] = useState<Gaji | null>(null);
@@ -163,11 +170,11 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
       const matchTahun = isNaN(d.getFullYear()) || d.getFullYear() === rutinFilterTahun;
       const matchSearch =
         !rutinSearch ||
-        p.keperluan.toLowerCase().includes(rutinSearch.toLowerCase()) ||
-        p.kategori.toLowerCase().includes(rutinSearch.toLowerCase()) ||
-        p.dibayarkanKepada.toLowerCase().includes(rutinSearch.toLowerCase()) ||
-        p.nomorKwitansi.toLowerCase().includes(rutinSearch.toLowerCase()) ||
-        p.petugas.toLowerCase().includes(rutinSearch.toLowerCase());
+        (p.keperluan || '').toLowerCase().includes(rutinSearch.toLowerCase()) ||
+        (p.kategori || '').toLowerCase().includes(rutinSearch.toLowerCase()) ||
+        (p.dibayarkanKepada || '').toLowerCase().includes(rutinSearch.toLowerCase()) ||
+        (p.nomorKwitansi || '').toLowerCase().includes(rutinSearch.toLowerCase()) ||
+        (p.petugas || '').toLowerCase().includes(rutinSearch.toLowerCase());
       return matchBulan && matchTahun && matchSearch;
     }).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
 
@@ -199,11 +206,11 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
       const matchTahun = isNaN(d.getFullYear()) || d.getFullYear() === trxFilterTahun;
       const matchSearch =
         !trxSearch ||
-        t.keterangan.toLowerCase().includes(trxSearch.toLowerCase()) ||
-        t.kategori.toLowerCase().includes(trxSearch.toLowerCase()) ||
-        t.penerima.toLowerCase().includes(trxSearch.toLowerCase()) ||
-        t.nomorTransaksi.toLowerCase().includes(trxSearch.toLowerCase()) ||
-        t.penanggungJawab.toLowerCase().includes(trxSearch.toLowerCase());
+        (t.keterangan || '').toLowerCase().includes(trxSearch.toLowerCase()) ||
+        (t.kategori || '').toLowerCase().includes(trxSearch.toLowerCase()) ||
+        (t.penerima || '').toLowerCase().includes(trxSearch.toLowerCase()) ||
+        (t.nomorTransaksi || '').toLowerCase().includes(trxSearch.toLowerCase()) ||
+        (t.penanggungJawab || '').toLowerCase().includes(trxSearch.toLowerCase());
       return matchBulan && matchTahun && matchSearch;
     }).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
 
