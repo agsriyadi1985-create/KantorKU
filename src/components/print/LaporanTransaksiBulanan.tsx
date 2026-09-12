@@ -24,7 +24,7 @@ export const LaporanTransaksiBulanan: React.FC<LaporanTransaksiBulananProps> = (
   bulan,
   tahun,
   companyInfo,
-  petugasName,
+  petugasName: _petugasName,
   onClose,
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);

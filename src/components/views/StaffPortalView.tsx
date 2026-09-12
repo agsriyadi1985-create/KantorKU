@@ -37,6 +37,7 @@ export const StaffPortalView: React.FC = () => {
     fetchTasks,
     kasbonList,
     gajiList,
+    transaksiHarianList,
     updateTaskStatus,
     addKasbon,
     companyInfo,
@@ -157,7 +158,7 @@ export const StaffPortalView: React.FC = () => {
 
   const [isKasbonModalOpen, setIsKasbonModalOpen] = useState(false);
   const [isRiwayatModalOpen, setIsRiwayatModalOpen] = useState(false);
-  const [riwayatInitialTab, setRiwayatInitialTab] = useState<'gaji' | 'kasbon'>('gaji');
+  const [riwayatInitialTab, setRiwayatInitialTab] = useState<'gaji' | 'kasbon' | 'transaksi_harian'>('gaji');
   const currentMonthYear = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}`;
   const [kasbonNominal, setKasbonNominal] = useState<number>(1000000);
   const [kasbonSkema, setKasbonSkema] = useState<SkemaKasbon>('Cicilan');
@@ -479,13 +480,13 @@ export const StaffPortalView: React.FC = () => {
                 RIWAYAT TRANSAKSI
               </h3>
               <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 truncate">
-                Gaji & Kasbon
+                Gaji, Kasbon & Transaksi Harian
               </p>
             </div>
           </div>
           <div className="mt-2.5 pt-2 sm:pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1">
             <span className="px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 truncate">
-              {myGajiList.length > 0 ? `${myGajiList.length} Slip` : 'Lihat'}
+              {transaksiHarianList.length > 0 ? `${transaksiHarianList.length} Trx` : `${myGajiList.length} Slip`}
             </span>
             <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </div>
@@ -989,6 +990,7 @@ export const StaffPortalView: React.FC = () => {
         companyInfo={companyInfo}
         gajiList={gajiList}
         kasbonList={kasbonList}
+        transaksiHarianList={transaksiHarianList}
         initialTab={riwayatInitialTab}
       />
 
