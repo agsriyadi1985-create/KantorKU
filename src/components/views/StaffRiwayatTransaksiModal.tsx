@@ -287,30 +287,30 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
                 {/* 1. Gaji */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('gaji')}
-                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 border border-emerald-200/80 hover:border-emerald-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
+                  className="group relative flex flex-col justify-between p-3 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 border border-emerald-200/80 hover:border-emerald-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform shrink-0">
-                      <Banknote className="w-6 h-6" />
+                  <div className="flex items-start justify-between gap-1.5">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform shrink-0">
+                      <Banknote className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
-                      {myGaji.length} Slip Gaji
+                    <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                      {myGaji.length} Slip
                     </span>
                   </div>
-                  <div className="mt-3.5">
+                  <div className="mt-2.5 sm:mt-3.5">
                     <div className="flex items-center justify-between">
-                      <h5 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                      <h5 className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
                         Gaji
                       </h5>
-                      <ChevronRight className="w-4 h-4 text-emerald-600 group-hover:translate-x-1 transition-transform" />
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 group-hover:translate-x-1 transition-transform" />
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      Riwayat slip gaji bulanan, rincian pendapatan resmi, potongan & cetak dokumen.
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 leading-snug line-clamp-2">
+                      Slip gaji bulanan & rincian potongan.
                     </p>
                   </div>
                 </button>
@@ -319,25 +319,25 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
                 <button
                   type="button"
                   onClick={() => setActiveTab('kasbon')}
-                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 border border-amber-200/80 hover:border-amber-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
+                  className="group relative flex flex-col justify-between p-3 sm:p-4 rounded-2xl bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 border border-amber-200/80 hover:border-amber-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md shadow-amber-600/20 group-hover:scale-105 transition-transform shrink-0">
-                      <CreditCard className="w-6 h-6" />
+                  <div className="flex items-start justify-between gap-1.5">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md shadow-amber-600/20 group-hover:scale-105 transition-transform shrink-0">
+                      <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
-                      {myKasbon.length} Pengajuan
+                    <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                      {myKasbon.length} Data
                     </span>
                   </div>
-                  <div className="mt-3.5">
+                  <div className="mt-2.5 sm:mt-3.5">
                     <div className="flex items-center justify-between">
-                      <h5 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-amber-700 transition-colors">
+                      <h5 className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-amber-700 transition-colors">
                         Kasbon
                       </h5>
-                      <ChevronRight className="w-4 h-4 text-amber-600 group-hover:translate-x-1 transition-transform" />
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 group-hover:translate-x-1 transition-transform" />
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      Riwayat pinjaman staf, sisa cicilan aktif, tenor & riwayat potongan gaji.
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 leading-snug line-clamp-2">
+                      Pinjaman staf, cicilan & sisa saldo.
                     </p>
                   </div>
                 </button>
@@ -346,25 +346,25 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
                 <button
                   type="button"
                   onClick={() => setActiveTab('transaksi_rutin')}
-                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-gradient-to-br from-teal-50/70 via-white to-cyan-50/40 border border-teal-200/80 hover:border-teal-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
+                  className="group relative flex flex-col justify-between p-3 sm:p-4 rounded-2xl bg-gradient-to-br from-teal-50/70 via-white to-cyan-50/40 border border-teal-200/80 hover:border-teal-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20 group-hover:scale-105 transition-transform shrink-0">
-                      <Receipt className="w-6 h-6" />
+                  <div className="flex items-start justify-between gap-1.5">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20 group-hover:scale-105 transition-transform shrink-0">
+                      <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-teal-100 text-teal-800 border border-teal-200 shrink-0">
-                      {allPengeluaran.length} Transaksi
+                    <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold bg-teal-100 text-teal-800 border border-teal-200 shrink-0">
+                      {allPengeluaran.length} Trx
                     </span>
                   </div>
-                  <div className="mt-3.5">
+                  <div className="mt-2.5 sm:mt-3.5">
                     <div className="flex items-center justify-between">
-                      <h5 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-teal-700 transition-colors">
+                      <h5 className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-teal-700 transition-colors">
                         Transaksi Rutin
                       </h5>
-                      <ChevronRight className="w-4 h-4 text-teal-600 group-hover:translate-x-1 transition-transform" />
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-teal-600 group-hover:translate-x-1 transition-transform" />
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      Pengeluaran rutin & tagihan operasional kantor tersusun per bulan (Kwitansi).
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 leading-snug line-clamp-2">
+                      Beban & tagihan kantor (KW).
                     </p>
                   </div>
                 </button>
@@ -373,25 +373,25 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
                 <button
                   type="button"
                   onClick={() => setActiveTab('transaksi_harian')}
-                  className="group relative flex flex-col justify-between p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 border border-indigo-200/80 hover:border-brand-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
+                  className="group relative flex flex-col justify-between p-3 sm:p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 border border-indigo-200/80 hover:border-brand-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform shrink-0">
-                      <ReceiptText className="w-6 h-6" />
+                  <div className="flex items-start justify-between gap-1.5">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform shrink-0">
+                      <ReceiptText className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
-                      {allTransaksi.length} Transaksi
+                    <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
+                      {allTransaksi.length} Trx
                     </span>
                   </div>
-                  <div className="mt-3.5">
+                  <div className="mt-2.5 sm:mt-3.5">
                     <div className="flex items-center justify-between">
-                      <h5 className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-brand-700 transition-colors">
+                      <h5 className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-brand-700 transition-colors">
                         Transaksi Harian
                       </h5>
-                      <ChevronRight className="w-4 h-4 text-brand-600 group-hover:translate-x-1 transition-transform" />
+                      <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-600 group-hover:translate-x-1 transition-transform" />
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      Buku kas pengeluaran harian kantor tersusun rapi per bulan transaksi (TRX).
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 leading-snug line-clamp-2">
+                      Buku kas operasional per bulan (TRX).
                     </p>
                   </div>
                 </button>
