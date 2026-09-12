@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Gaji, Kasbon, Karyawan, CompanyInfo, TransaksiHarian } from '../../types';
+import { Gaji, Kasbon, Karyawan, CompanyInfo, TransaksiHarian, PengeluaranRutin } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../common/Modal';
 import { SlipGajiModern } from '../print/SlipGajiModern';
@@ -35,8 +35,9 @@ interface StaffRiwayatTransaksiModalProps {
   companyInfo: CompanyInfo;
   gajiList: Gaji[];
   kasbonList: Kasbon[];
+  pengeluaranList?: PengeluaranRutin[];
   transaksiHarianList?: TransaksiHarian[];
-  initialTab?: 'gaji' | 'kasbon' | 'transaksi_harian';
+  initialTab?: 'gaji' | 'kasbon' | 'transaksi_rutin' | 'transaksi_harian';
 }
 
 export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProps> = ({
@@ -46,15 +47,20 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
   companyInfo,
   gajiList,
   kasbonList,
+  pengeluaranList: propPengeluaranList,
   transaksiHarianList: propTransaksiList,
   initialTab = 'gaji',
 }) => {
-  const { transaksiHarianList: contextTransaksiList } = useApp();
+  const { transaksiHarianList: contextTransaksiList, pengeluaranList: contextPengeluaranList } = useApp();
   const allTransaksi = useMemo(() => {
     return propTransaksiList || contextTransaksiList || [];
   }, [propTransaksiList, contextTransaksiList]);
 
-  const [activeTab, setActiveTab] = useState<'gaji' | 'kasbon' | 'transaksi_harian'>(initialTab);
+  const allPengeluaran = useMemo(() => {
+    return propPengeluaranList || contextPengeluaranList || [];
+  }, [propPengeluaranList, contextPengeluaranList]);
+
+  const [activeTab, setActiveTab] = useState<'gaji' | 'kasbon' | 'transaksi_rutin' | 'transaksi_harian'>(initialTab);
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
@@ -65,6 +71,11 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
 
   const [selectedSlipGaji, setSelectedSlipGaji] = useState<Gaji | null>(null);
   const [expandedKasbonId, setExpandedKasbonId] = useState<string | null>(null);
+
+  // Filter khusus Transaksi Rutin (tersusun per bulan)
+  const [rutinFilterBulan, setRutinFilterBulan] = useState<number>(0); // 0 = Semua Bulan
+  const [rutinFilterTahun, setRutinFilterTahun] = useState<number>(new Date().getFullYear());
+  const [rutinSearch, setRutinSearch] = useState<string>('');
 
   // Filter khusus Transaksi Harian (tersusun per bulan)
   const [trxFilterBulan, setTrxFilterBulan] = useState<number>(0); // 0 = Semua Bulan
@@ -144,6 +155,42 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
     }
   };
 
+  // Grouping Transaksi Rutin (Pengeluaran Rutin) per bulan transaksi
+  const groupedRutinByMonth = useMemo(() => {
+    const filtered = allPengeluaran.filter((p) => {
+      const d = new Date(p.tanggal);
+      const matchBulan = rutinFilterBulan === 0 || d.getMonth() + 1 === rutinFilterBulan;
+      const matchTahun = isNaN(d.getFullYear()) || d.getFullYear() === rutinFilterTahun;
+      const matchSearch =
+        !rutinSearch ||
+        p.keperluan.toLowerCase().includes(rutinSearch.toLowerCase()) ||
+        p.kategori.toLowerCase().includes(rutinSearch.toLowerCase()) ||
+        p.dibayarkanKepada.toLowerCase().includes(rutinSearch.toLowerCase()) ||
+        p.nomorKwitansi.toLowerCase().includes(rutinSearch.toLowerCase()) ||
+        p.petugas.toLowerCase().includes(rutinSearch.toLowerCase());
+      return matchBulan && matchTahun && matchSearch;
+    }).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+
+    const groups: { [key: string]: { year: number; month: number; items: PengeluaranRutin[]; total: number } } = {};
+    filtered.forEach((p) => {
+      const d = new Date(p.tanggal);
+      const y = isNaN(d.getFullYear()) ? new Date().getFullYear() : d.getFullYear();
+      const m = isNaN(d.getMonth()) ? new Date().getMonth() + 1 : d.getMonth() + 1;
+      const key = `${y}-${String(m).padStart(2, '0')}`;
+      if (!groups[key]) {
+        groups[key] = { year: y, month: m, items: [], total: 0 };
+      }
+      groups[key].items.push(p);
+      groups[key].total += p.nominal;
+    });
+
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [allPengeluaran, rutinFilterBulan, rutinFilterTahun, rutinSearch]);
+
+  const totalFilteredRutinNominal = useMemo(() => {
+    return groupedRutinByMonth.reduce((acc, curr) => acc + curr[1].total, 0);
+  }, [groupedRutinByMonth]);
+
   // Grouping Transaksi Harian per bulan transaksi
   const groupedTrxByMonth = useMemo(() => {
     const filtered = allTransaksi.filter((t) => {
@@ -189,7 +236,7 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
         onClose={onClose}
         title="Riwayat Transaksi"
         subtitle={`Karyawan: ${karyawan?.nama || 'Staf'} (${karyawan?.nik || '-'})`}
-        maxWidth={activeTab === 'transaksi_harian' ? '3xl' : '2xl'}
+        maxWidth={activeTab === 'transaksi_harian' || activeTab === 'transaksi_rutin' ? '3xl' : '2xl'}
       >
         <div className="space-y-4">
           {/* Tab Selector Buttons */}
@@ -197,7 +244,7 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
             <button
               type="button"
               onClick={() => setActiveTab('gaji')}
-              className={`flex-1 min-w-[110px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 min-w-[105px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'gaji'
                   ? 'bg-white text-emerald-700 shadow-sm border border-emerald-100 font-extrabold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -219,7 +266,7 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
             <button
               type="button"
               onClick={() => setActiveTab('kasbon')}
-              className={`flex-1 min-w-[110px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 min-w-[105px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'kasbon'
                   ? 'bg-white text-amber-700 shadow-sm border border-amber-100 font-extrabold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -238,10 +285,34 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
               </span>
             </button>
 
+            {/* Tab: Transaksi Rutin (Pengeluaran Rutin Kantor) */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('transaksi_rutin')}
+              className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'transaksi_rutin'
+                  ? 'bg-white text-emerald-800 shadow-sm border border-emerald-100 font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+              }`}
+            >
+              <Receipt className={`w-4 h-4 shrink-0 ${activeTab === 'transaksi_rutin' ? 'text-emerald-600' : 'text-slate-400'}`} />
+              <span className="truncate">Transaksi Rutin</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  activeTab === 'transaksi_rutin'
+                    ? 'bg-emerald-100 text-emerald-800 font-bold'
+                    : 'bg-slate-200 text-slate-600'
+                }`}
+              >
+                {allPengeluaran.length}
+              </span>
+            </button>
+
+            {/* Tab: Transaksi Harian */}
             <button
               type="button"
               onClick={() => setActiveTab('transaksi_harian')}
-              className={`flex-1 min-w-[135px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'transaksi_harian'
                   ? 'bg-white text-brand-700 shadow-sm border border-brand-100 font-extrabold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -570,7 +641,176 @@ export const StaffRiwayatTransaksiModal: React.FC<StaffRiwayatTransaksiModalProp
           )}
 
           {/* ============================================================
-              TAB 3: TRANSAKSI HARIAN KANTOR (MODE LIHAT PETUGAS, TERSUSUN PER BULAN)
+              TAB 3: TRANSAKSI RUTIN KANTOR (MODE LIHAT PETUGAS, TERSUSUN PER BULAN)
+              ============================================================ */}
+          {activeTab === 'transaksi_rutin' && (
+            <div className="space-y-3.5">
+              {/* Notice Bar: Mode Lihat (Read-Only) */}
+              <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 text-white rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      Transparansi Transaksi Rutin Kantor
+                      <span className="text-[9px] font-semibold bg-emerald-500/20 text-emerald-300 px-2 py-0.2 rounded-full border border-emerald-500/30">
+                        Mode Lihat (Read-Only)
+                      </span>
+                    </h4>
+                    <p className="text-[10px] text-slate-300 mt-0.5">
+                      Daftar pengeluaran dan beban rutin kantor yang telah dicatat, tersusun per bulan.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right hidden sm:block">
+                  <span className="text-[9px] text-emerald-400/80 uppercase tracking-wider block">Total Pengeluaran</span>
+                  <span className="text-xs font-black font-mono text-emerald-300">{formatRupiah(totalFilteredRutinNominal)}</span>
+                </div>
+              </div>
+
+              {/* Filter Controls: Search & Bulan & Tahun */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <div className="sm:col-span-6 relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={rutinSearch}
+                    onChange={(e) => setRutinSearch(e.target.value)}
+                    placeholder="Cari transaksi rutin, kwitansi, atau penerima..."
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+                  />
+                </div>
+
+                <div className="sm:col-span-3">
+                  <select
+                    value={rutinFilterBulan}
+                    onChange={(e) => setRutinFilterBulan(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+                  >
+                    <option value={0}>Semua Bulan</option>
+                    {DAFTAR_BULAN.map((b) => (
+                      <option key={b.value} value={b.value}>
+                        {b.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-3">
+                  <select
+                    value={rutinFilterTahun}
+                    onChange={(e) => setRutinFilterTahun(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+                  >
+                    <option value={2025}>2025</option>
+                    <option value={2026}>2026</option>
+                    <option value={2027}>2027</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Transactions List Grouped by Month */}
+              <div className="space-y-4 max-h-[52vh] overflow-y-auto pr-1">
+                {groupedRutinByMonth.length === 0 ? (
+                  <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                    <Receipt className="w-10 h-10 text-slate-300 mx-auto" />
+                    <p className="text-xs font-bold text-slate-700">
+                      Tidak ada catatan transaksi rutin ditemukan
+                    </p>
+                    <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
+                      Belum ada transaksi pengeluaran rutin yang dicatat pada filter bulan ini.
+                    </p>
+                  </div>
+                ) : (
+                  groupedRutinByMonth.map(([key, group]) => {
+                    const monthName = getNamaBulan(group.month);
+                    return (
+                      <div key={key} className="bg-slate-50/70 border border-slate-200 rounded-2xl p-3 space-y-2.5">
+                        {/* Month Header Banner */}
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight">
+                              Bulan {monthName} {group.year}
+                            </h4>
+                            <span className="text-[10px] font-bold bg-slate-200/80 text-slate-700 px-2 py-0.2 rounded-full">
+                              {group.items.length} Transaksi
+                            </span>
+                          </div>
+                          <span className="text-xs font-black font-mono text-slate-900 bg-white px-2.5 py-0.5 rounded-lg border border-slate-200 shadow-2xs">
+                            {formatRupiah(group.total)}
+                          </span>
+                        </div>
+
+                        {/* List of Transactions in This Month */}
+                        <div className="space-y-2">
+                          {group.items.map((rutin) => (
+                            <div
+                              key={rutin.id}
+                              className="bg-white p-3 rounded-xl border border-slate-200/80 hover:border-slate-300 transition-all shadow-2xs space-y-1.5"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="space-y-0.5 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-100">
+                                      {rutin.nomorKwitansi}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.2 rounded">
+                                      {rutin.kategori}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {formatTanggal(rutin.tanggal)}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs font-bold text-slate-900 leading-snug pt-0.5">
+                                    {rutin.keperluan}
+                                  </p>
+                                </div>
+
+                                <div className="text-right shrink-0">
+                                  <span className="text-xs font-black font-mono text-slate-900 block">
+                                    {formatRupiah(rutin.nominal)}
+                                  </span>
+                                  <span className="text-[9px] font-semibold text-slate-500 bg-slate-50 px-1.5 py-0.2 rounded border border-slate-100">
+                                    {rutin.metodeBayar}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Footer Meta */}
+                              <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-100 flex-wrap gap-1">
+                                <span className="truncate max-w-[220px]">
+                                  Penerima: <strong className="text-slate-700 font-semibold">{rutin.dibayarkanKepada || '-'}</strong>
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  {rutin.petugas && (
+                                    <span className="text-slate-400">
+                                      Petugas: {rutin.petugas}
+                                    </span>
+                                  )}
+                                  {rutin.catatan && (
+                                    <span className="text-slate-400 italic truncate max-w-[150px]">
+                                      {rutin.catatan}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================
+              TAB 4: TRANSAKSI HARIAN KANTOR (MODE LIHAT PETUGAS, TERSUSUN PER BULAN)
               ============================================================ */}
           {activeTab === 'transaksi_harian' && (
             <div className="space-y-3.5">

@@ -12,7 +12,7 @@ import {
   TransaksiHarian,
 } from '../types';
 import {
-  initialCompanyInfo, initialKaryawan, initialKasbon, initialGaji, initialPengeluaran, initialUsers, initialTasks, initialTransaksiHarian,
+  initialCompanyInfo, initialKaryawan, initialKasbon, initialGaji, initialPengeluaran, initialUsers, initialTasks,
 } from '../utils/initialData';
 import { generateId, generateKodeSlip, generateKodeKasbon, generateKodeKwitansi, generateKodeTransaksiHarian, normalizeNIK } from '../utils/formatters';
 
@@ -284,9 +284,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [transaksiHarianList, setTransaksiHarianList] = useState<TransaksiHarian[]>(() => {
     try {
       const saved = localStorage.getItem(TRANSAKSI_HARIAN_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : initialTransaksiHarian;
+      if (!saved) return [];
+      const parsed: TransaksiHarian[] = JSON.parse(saved);
+      // Bersihkan data dummy warisan (id berawalan trx-0 atau dummy-)
+      const clean = parsed.filter(t => !t.id.startsWith('trx-0') && !t.id.startsWith('dummy-'));
+      if (clean.length !== parsed.length) {
+        localStorage.setItem(TRANSAKSI_HARIAN_STORAGE_KEY, JSON.stringify(clean));
+      }
+      return clean;
     } catch {
-      return initialTransaksiHarian;
+      return [];
     }
   });
 
@@ -389,7 +396,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const fetchPengeluaran = useCallback(async () => {
     try {
       const { data, error } = await supabase.from('pengeluaran_rutin').select('*').order('created_at', { ascending: false });
-      if (!error && data) setPengeluaranList(data.map(r => mapPengeluaranFromDB(r as Record<string, unknown>)));
+      if (!error && data) {
+        const mapped = data.map(r => mapPengeluaranFromDB(r as Record<string, unknown>));
+        const clean = mapped.filter(p => !p.id.startsWith('peng-0') && !p.id.startsWith('dummy-'));
+        setPengeluaranList(clean);
+      }
     } catch {
       // ignore
     }
@@ -400,14 +411,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const { data, error } = await supabase.from('transaksi_harian').select('*').order('tanggal', { ascending: false });
       if (!error && data) {
         const mapped = data.map(r => mapTransaksiHarianFromDB(r as Record<string, unknown>));
-        setTransaksiHarianList(mapped);
+        const clean = mapped.filter(t => !t.id.startsWith('trx-0') && !t.id.startsWith('dummy-'));
+        setTransaksiHarianList(clean);
         try {
-          localStorage.setItem(TRANSAKSI_HARIAN_STORAGE_KEY, JSON.stringify(mapped));
+          localStorage.setItem(TRANSAKSI_HARIAN_STORAGE_KEY, JSON.stringify(clean));
         } catch {
           // ignore
         }
-      } else if (error) {
-        console.warn('fetchTransaksiHarian fallback to localStorage cache:', error.message);
+      } else {
+        // Fallback ke localStorage saat tabel Supabase belum ada / error
+        try {
+          const saved = localStorage.getItem(TRANSAKSI_HARIAN_STORAGE_KEY);
+          if (saved) {
+            const parsed: TransaksiHarian[] = JSON.parse(saved);
+            const clean = parsed.filter(t => !t.id.startsWith('trx-0') && !t.id.startsWith('dummy-'));
+            setTransaksiHarianList(clean);
+          } else {
+            setTransaksiHarianList([]);
+          }
+        } catch {
+          setTransaksiHarianList([]);
+        }
       }
     } catch (err) {
       console.warn('fetchTransaksiHarian catch fallback:', err);
