@@ -150,6 +150,12 @@ export const generateKodeKwitansi = (count: number): string => {
   return `KW-${tahun}${bulan}-${countStr}`;
 };
 
+export const generateKodeTransaksiHarian = (tahun: number, bulan: number, count: number): string => {
+  const bulanStr = String(bulan).padStart(2, '0');
+  const countStr = String(count + 1).padStart(3, '0');
+  return `TRX-${tahun}${bulanStr}-${countStr}`;
+};
+
 // Normalisasi NIK (menghapus tanda strip, spasi, dan mengubah ke huruf kapital)
 // Contoh: 'KTK2026001' <-> 'KTK-2026-001'
 export const normalizeNIK = (str: string | undefined | null): string => {

@@ -13,6 +13,7 @@ import { KaryawanView } from './components/views/KaryawanView';
 import { GajiView } from './components/views/GajiView';
 import { KasbonView } from './components/views/KasbonView';
 import { PengeluaranView } from './components/views/PengeluaranView';
+import { TransaksiHarianView } from './components/views/TransaksiHarianView';
 import { UserManagementView } from './components/views/UserManagementView';
 import { PengaturanView } from './components/views/PengaturanView';
 
@@ -52,6 +53,8 @@ const MainContent: React.FC = () => {
         return <KasbonView />;
       case 'pengeluaran':
         return <PengeluaranView />;
+      case 'transaksi_harian':
+        return <TransaksiHarianView />;
       case 'users':
         return isAdmin ? <UserManagementView /> : <DashboardView />;
       case 'pengaturan':

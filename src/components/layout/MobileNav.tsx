@@ -13,6 +13,7 @@ import {
   UserCheck,
   LogOut,
   CheckSquare,
+  ReceiptText,
 } from 'lucide-react';
 
 interface MobileNavProps {
@@ -39,6 +40,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
     { id: 'gaji', label: 'Gaji & Payroll', icon: <Banknote className="w-5 h-5" /> },
     { id: 'kasbon', label: 'Kasbon Karyawan', icon: <CreditCard className="w-5 h-5" /> },
     { id: 'pengeluaran', label: 'Pengeluaran Rutin', icon: <Receipt className="w-5 h-5" /> },
+    { id: 'transaksi_harian', label: 'Transaksi Harian', icon: <ReceiptText className="w-5 h-5" /> },
     { id: 'users', label: 'Manajemen User', icon: <UserCheck className="w-5 h-5" />, adminOnly: true },
     { id: 'pengaturan', label: 'Pengaturan', icon: <Settings className="w-5 h-5" />, adminOnly: true },
   ];

@@ -17,6 +17,7 @@ import {
   DollarSign,
   PieChart,
   CheckSquare,
+  ReceiptText,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal, getNamaBulan } from '../../utils/formatters';
 import { StaffPortalView } from './StaffPortalView';
@@ -133,7 +134,14 @@ export const DashboardView: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl text-xs font-semibold transition-all cursor-pointer"
           >
             <Receipt className="w-4 h-4 text-emerald-400" />
-            Catat Pengeluaran
+            Pengeluaran Rutin
+          </button>
+          <button
+            onClick={() => setActiveTab('transaksi_harian')}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+          >
+            <ReceiptText className="w-4 h-4 text-emerald-400" />
+            Transaksi Harian
           </button>
           <button
             onClick={() => setActiveTab('karyawan')}

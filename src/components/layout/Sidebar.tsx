@@ -14,6 +14,7 @@ import {
   UserCheck,
   LogOut,
   CheckSquare,
+  ReceiptText,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -64,6 +65,12 @@ export const Sidebar: React.FC = () => {
       label: 'Pengeluaran Rutin',
       icon: <Receipt className="w-5 h-5" />,
       desc: 'Operasional & Kwitansi',
+    },
+    {
+      id: 'transaksi_harian',
+      label: 'Transaksi Harian',
+      icon: <ReceiptText className="w-5 h-5" />,
+      desc: 'Catatan 1 Bulan & Cetak',
     },
     {
       id: 'users',

@@ -65,6 +65,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           title: 'Pengeluaran Rutin Kantor',
           subtitle: 'Pencatatan biaya operasional kantor & cetak kwitansi resmi.',
         };
+      case 'transaksi_harian':
+        return {
+          title: 'Pencatatan Transaksi Harian',
+          subtitle: 'Pencatatan semua pengeluaran selama 1 bulan & cetak laporan resmi PDF.',
+        };
       case 'users':
         return {
           title: 'Manajemen User & Hak Akses',

@@ -167,6 +167,21 @@ export interface Task {
   updatedAt?: string;
 }
 
+export interface TransaksiHarian {
+  id: string;
+  nomorTransaksi: string;
+  tanggal: string; // YYYY-MM-DD
+  kategori: string;
+  keterangan: string;
+  nominal: number;
+  metodeBayar: MetodeBayar;
+  penerima: string;
+  penanggungJawab: string;
+  buktiNota?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export type ActiveTab =
   | 'dashboard'
   | 'task'
@@ -174,6 +189,7 @@ export type ActiveTab =
   | 'gaji'
   | 'kasbon'
   | 'pengeluaran'
+  | 'transaksi_harian'
   | 'users'
   | 'pengaturan';
 

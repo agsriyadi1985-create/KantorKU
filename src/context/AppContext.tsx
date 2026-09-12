@@ -9,11 +9,12 @@ import {
   ActiveTab,
   User, UserRole,
   Task, TaskStatus, TaskPriority,
+  TransaksiHarian,
 } from '../types';
 import {
-  initialCompanyInfo, initialKaryawan, initialKasbon, initialGaji, initialPengeluaran, initialUsers, initialTasks,
+  initialCompanyInfo, initialKaryawan, initialKasbon, initialGaji, initialPengeluaran, initialUsers, initialTasks, initialTransaksiHarian,
 } from '../utils/initialData';
-import { generateId, generateKodeSlip, generateKodeKasbon, generateKodeKwitansi, normalizeNIK } from '../utils/formatters';
+import { generateId, generateKodeSlip, generateKodeKasbon, generateKodeKwitansi, generateKodeTransaksiHarian, normalizeNIK } from '../utils/formatters';
 
 export interface ToastMessage {
   id: string;
@@ -78,6 +79,13 @@ interface AppContextType {
   updatePengeluaran: (id: string, data: Partial<PengeluaranRutin>) => Promise<void>;
   deletePengeluaran: (id: string) => Promise<void>;
   getPengeluaranById: (id: string) => PengeluaranRutin | undefined;
+
+  // Transaksi Harian (Pengeluaran Harian Bulanan)
+  transaksiHarianList: TransaksiHarian[];
+  fetchTransaksiHarian: () => Promise<void>;
+  addTransaksiHarian: (data: Omit<TransaksiHarian, 'id' | 'nomorTransaksi' | 'createdAt' | 'updatedAt'>) => Promise<TransaksiHarian | null>;
+  updateTransaksiHarian: (id: string, data: Partial<TransaksiHarian>) => Promise<void>;
+  deleteTransaksiHarian: (id: string) => Promise<void>;
 
   // Toast
   toasts: ToastMessage[];
@@ -221,6 +229,21 @@ const mapTaskFromDB = (row: Record<string, unknown>): Task => ({
   updatedAt: row.updated_at as string | undefined,
 });
 
+const mapTransaksiHarianFromDB = (row: Record<string, unknown>): TransaksiHarian => ({
+  id: row.id as string,
+  nomorTransaksi: (row.nomor_transaksi as string) || '',
+  tanggal: (row.tanggal as string) || '',
+  kategori: (row.kategori as string) || 'Lain-lain',
+  keterangan: (row.keterangan as string) || '',
+  nominal: Number(row.nominal) || 0,
+  metodeBayar: (row.metode_bayar as MetodeBayar) || 'Kas Tunai',
+  penerima: (row.penerima as string) || '',
+  penanggungJawab: (row.penanggung_jawab as string) || '',
+  buktiNota: (row.bukti_nota as string) || '',
+  createdAt: row.created_at as string | undefined,
+  updatedAt: row.updated_at as string | undefined,
+});
+
 // ============================================================
 // CONTEXT
 // ============================================================
@@ -228,6 +251,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const SESSION_STORAGE_KEY = 'kantorku_auth_session';
 const TASKS_STORAGE_KEY = 'kantorku_tasks_data';
+const TRANSAKSI_HARIAN_STORAGE_KEY = 'kantorku_transaksi_harian_data';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Current user state with local session persistence
@@ -257,6 +281,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [kasbonList, setKasbonList] = useState<Kasbon[]>([]);
   const [gajiList, setGajiList] = useState<Gaji[]>([]);
   const [pengeluaranList, setPengeluaranList] = useState<PengeluaranRutin[]>([]);
+  const [transaksiHarianList, setTransaksiHarianList] = useState<TransaksiHarian[]>(() => {
+    try {
+      const saved = localStorage.getItem(TRANSAKSI_HARIAN_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : initialTransaksiHarian;
+    } catch {
+      return initialTransaksiHarian;
+    }
+  });
 
   // ── Toast ──────────────────────────────────────────────────
   const addToast = useCallback((type: ToastMessage['type'], message: string) => {
@@ -360,6 +392,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (!error && data) setPengeluaranList(data.map(r => mapPengeluaranFromDB(r as Record<string, unknown>)));
     } catch {
       // ignore
+    }
+  }, []);
+
+  const fetchTransaksiHarian = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('transaksi_harian').select('*').order('tanggal', { ascending: false });
+      if (!error && data) {
+        const mapped = data.map(r => mapTransaksiHarianFromDB(r as Record<string, unknown>));
+        setTransaksiHarianList(mapped);
+        try {
+          localStorage.setItem(TRANSAKSI_HARIAN_STORAGE_KEY, JSON.stringify(mapped));
+        } catch {
+          // ignore
+        }
+      } else if (error) {
+        console.warn('fetchTransaksiHarian fallback to localStorage cache:', error.message);
+      }
+    } catch (err) {
+      console.warn('fetchTransaksiHarian catch fallback:', err);
     }
   }, []);
 
@@ -527,7 +578,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           }
         }
 
-        // 3. Fetch real clean data (Tasks, Karyawan, Kasbon, Gaji, Pengeluaran)
+        // 3. Fetch real clean data (Tasks, Karyawan, Kasbon, Gaji, Pengeluaran, Transaksi Harian)
         await Promise.all([
           fetchUsers(),
           fetchCompany(),
@@ -536,6 +587,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           fetchKasbon(),
           fetchGaji(),
           fetchPengeluaran(),
+          fetchTransaksiHarian(),
         ]);
       } catch (err) {
         console.error('Init error:', err);
@@ -555,6 +607,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         fetchKasbon();
         fetchGaji();
         fetchPengeluaran();
+        fetchTransaksiHarian();
         fetchUsers();
       }
     };
@@ -571,6 +624,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'kasbon' }, () => { fetchKasbon(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'gaji' }, () => { fetchGaji(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pengeluaran_rutin' }, () => { fetchPengeluaran(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transaksi_harian' }, () => { fetchTransaksiHarian(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'company_info' }, () => { fetchCompany(); })
       .subscribe();
 
@@ -1359,20 +1413,156 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const getPengeluaranById = useCallback((id: string) => pengeluaranList.find(p => p.id === id), [pengeluaranList]);
 
   // ============================================================
+  // TRANSAKSI HARIAN (PENGELUARAN HARIAN BULANAN)
+  // ============================================================
+  const addTransaksiHarian = useCallback(async (data: Omit<TransaksiHarian, 'id' | 'nomorTransaksi' | 'createdAt' | 'updatedAt'>): Promise<TransaksiHarian | null> => {
+    try {
+      const d = new Date(data.tanggal);
+      const tahun = isNaN(d.getFullYear()) ? new Date().getFullYear() : d.getFullYear();
+      const bulan = isNaN(d.getMonth()) ? new Date().getMonth() + 1 : d.getMonth() + 1;
+
+      // Count transactions in same month to form sequential code
+      const currentMonthCount = transaksiHarianList.filter(t => {
+        const td = new Date(t.tanggal);
+        return td.getFullYear() === tahun && td.getMonth() + 1 === bulan;
+      }).length;
+
+      const nomorTransaksi = generateKodeTransaksiHarian(tahun, bulan, currentMonthCount);
+      const now = new Date().toISOString();
+
+      const { data: result, error } = await supabase.from('transaksi_harian').insert({
+        nomor_transaksi: nomorTransaksi,
+        tanggal: data.tanggal,
+        kategori: data.kategori,
+        keterangan: data.keterangan,
+        nominal: data.nominal,
+        metode_bayar: data.metodeBayar,
+        penerima: data.penerima,
+        penanggung_jawab: data.penanggungJawab,
+        bukti_nota: data.buktiNota || '',
+        created_at: now,
+        updated_at: now,
+      }).select().single();
+
+      const newTrx: TransaksiHarian = result
+        ? mapTransaksiHarianFromDB(result as Record<string, unknown>)
+        : {
+            id: generateId(),
+            nomorTransaksi,
+            tanggal: data.tanggal,
+            kategori: data.kategori,
+            keterangan: data.keterangan,
+            nominal: data.nominal,
+            metodeBayar: data.metodeBayar,
+            penerima: data.penerima,
+            penanggungJawab: data.penanggungJawab,
+            buktiNota: data.buktiNota || '',
+            createdAt: now,
+            updatedAt: now,
+          };
+
+      setTransaksiHarianList(prev => {
+        const updated = [newTrx, ...prev.filter(t => t.id !== newTrx.id)];
+        try {
+          localStorage.setItem(TRANSAKSI_HARIAN_STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
+
+      if (error) {
+        console.warn('Supabase transaksi_harian insert fallback to localStorage:', error.message);
+      }
+
+      addToast('success', `Transaksi ${nomorTransaksi} berhasil dicatat`);
+      return newTrx;
+    } catch (err) {
+      console.error(err);
+      addToast('error', 'Gagal mencatat transaksi harian');
+      return null;
+    }
+  }, [transaksiHarianList, addToast]);
+
+  const updateTransaksiHarian = useCallback(async (id: string, data: Partial<TransaksiHarian>) => {
+    try {
+      const now = new Date().toISOString();
+      const updateData: Record<string, unknown> = { updated_at: now };
+      if (data.tanggal !== undefined) updateData.tanggal = data.tanggal;
+      if (data.kategori !== undefined) updateData.kategori = data.kategori;
+      if (data.keterangan !== undefined) updateData.keterangan = data.keterangan;
+      if (data.nominal !== undefined) updateData.nominal = data.nominal;
+      if (data.metodeBayar !== undefined) updateData.metode_bayar = data.metodeBayar;
+      if (data.penerima !== undefined) updateData.penerima = data.penerima;
+      if (data.penanggungJawab !== undefined) updateData.penanggung_jawab = data.penanggungJawab;
+      if (data.buktiNota !== undefined) updateData.bukti_nota = data.buktiNota;
+
+      const { data: result, error } = await supabase.from('transaksi_harian').update(updateData).eq('id', id).select().single();
+
+      setTransaksiHarianList(prev => {
+        const updated = prev.map(t => {
+          if (t.id === id) {
+            return result ? mapTransaksiHarianFromDB(result as Record<string, unknown>) : { ...t, ...data, updatedAt: now };
+          }
+          return t;
+        });
+        try {
+          localStorage.setItem(TRANSAKSI_HARIAN_STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
+
+      if (error) {
+        console.warn('Supabase transaksi_harian update fallback to localStorage:', error.message);
+      }
+
+      addToast('success', 'Transaksi harian berhasil diperbarui');
+    } catch (err) {
+      console.error(err);
+      addToast('error', 'Gagal memperbarui transaksi');
+    }
+  }, [addToast]);
+
+  const deleteTransaksiHarian = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase.from('transaksi_harian').delete().eq('id', id);
+      if (error) {
+        console.warn('Supabase delete error, proceeding with local delete:', error.message);
+      }
+      setTransaksiHarianList(prev => {
+        const updated = prev.filter(t => t.id !== id);
+        try {
+          localStorage.setItem(TRANSAKSI_HARIAN_STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+        return updated;
+      });
+      addToast('info', 'Transaksi harian berhasil dihapus');
+    } catch (err) {
+      console.error(err);
+      addToast('error', 'Gagal menghapus transaksi');
+    }
+  }, [addToast]);
+
+  // ============================================================
   // BACKUP / RESTORE / RESET
   // ============================================================
   const exportDataJSON = useCallback(async () => {
-    const [compRes, karRes, kbRes, gajiRes, pengRes, taskRes] = await Promise.all([
+    const [compRes, karRes, kbRes, gajiRes, pengRes, taskRes, trxRes] = await Promise.all([
       supabase.from('company_info').select('*').limit(1).maybeSingle(),
       supabase.from('karyawan').select('*'),
       supabase.from('kasbon').select('*'),
       supabase.from('gaji').select('*'),
       supabase.from('pengeluaran_rutin').select('*'),
       supabase.from('tasks').select('*'),
+      supabase.from('transaksi_harian').select('*'),
     ]);
 
     const backupData = {
-      version: '2.2-supabase',
+      version: '2.3-supabase',
       exportedAt: new Date().toISOString(),
       companyInfo: compRes.data ? mapCompanyInfoFromDB(compRes.data as Record<string, unknown>) : companyInfo,
       taskList: (taskRes.data || []).map(r => mapTaskFromDB(r as Record<string, unknown>)),
@@ -1380,6 +1570,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       kasbonList: (kbRes.data || []).map(r => mapKasbonFromDB(r as Record<string, unknown>)),
       gajiList: (gajiRes.data || []).map(r => mapGajiFromDB(r as Record<string, unknown>)),
       pengeluaranList: (pengRes.data || []).map(r => mapPengeluaranFromDB(r as Record<string, unknown>)),
+      transaksiHarianList: trxRes.data && trxRes.data.length > 0
+        ? (trxRes.data || []).map(r => mapTransaksiHarianFromDB(r as Record<string, unknown>))
+        : transaksiHarianList,
     };
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -1390,7 +1583,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     a.click();
     URL.revokeObjectURL(url);
     addToast('success', 'Backup data berhasil diunduh');
-  }, [companyInfo, addToast]);
+  }, [companyInfo, transaksiHarianList, addToast]);
 
   const importDataJSON = useCallback(async (_jsonString: string): Promise<boolean> => {
     addToast('info', 'Fitur import sedang dalam pengembangan untuk versi Supabase');
@@ -1405,12 +1598,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await supabase.from('karyawan').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('pengeluaran_rutin').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      try {
+        await supabase.from('transaksi_harian').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch {
+        // ignore
+      }
 
       setKaryawanList([]);
       setKasbonList([]);
       setGajiList([]);
       setPengeluaranList([]);
       setTaskList([]);
+      setTransaksiHarianList([]);
+      try {
+        localStorage.removeItem(TRANSAKSI_HARIAN_STORAGE_KEY);
+      } catch {
+        // ignore
+      }
 
       addToast('info', 'Seluruh data transaksi, tugas, dan karyawan berhasil dikosongkan.');
     } catch (err) {
@@ -1431,6 +1635,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       kasbonList, addKasbon, updateKasbon, deleteKasbon, bayarKasbonManual, getActiveKasbonByKaryawan,
       gajiList, addGaji, updateGaji, deleteGaji, markGajiAsPaid, getGajiById,
       pengeluaranList, addPengeluaran, updatePengeluaran, deletePengeluaran, getPengeluaranById,
+      transaksiHarianList, fetchTransaksiHarian, addTransaksiHarian, updateTransaksiHarian, deleteTransaksiHarian,
       toasts, addToast, removeToast,
       exportDataJSON, importDataJSON, resetToDemoData,
     }}>
