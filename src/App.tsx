@@ -18,12 +18,12 @@ import { UserManagementView } from './components/views/UserManagementView';
 import { PengaturanView } from './components/views/PengaturanView';
 
 const MainContent: React.FC = () => {
-  const { activeTab, isLoading, currentUser } = useApp();
+  const { activeTab, isLoading, currentUser, bypassLoading } = useApp();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // 1. Loading State
   if (isLoading) {
-    return <LoadingScreen />;
+    return <LoadingScreen onBypass={bypassLoading} />;
   }
 
   // 2. Authentication Check (Show Login Page if not logged in)

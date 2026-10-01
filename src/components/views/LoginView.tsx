@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Lock, User, Eye, EyeOff, ShieldCheck, ArrowRight, Building2 } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ShieldCheck, ArrowRight, Building2, WifiOff } from 'lucide-react';
 
 export const LoginView: React.FC = () => {
-  const { login, companyInfo } = useApp();
+  const { login, companyInfo, isOfflineMode } = useApp();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -52,6 +52,12 @@ export const LoginView: React.FC = () => {
             <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xs">
               {companyInfo.slogan || 'Sistem Manajemen Kantor & Payroll Terpadu'}
             </p>
+            {isOfflineMode && (
+              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                <WifiOff className="w-3.5 h-3.5 text-amber-400" />
+                <span>Mode Offline (Data Lokal Perangkat)</span>
+              </div>
+            )}
           </div>
 
           {/* Error Banner */}

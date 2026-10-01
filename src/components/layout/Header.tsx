@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   Shield,
   LogOut,
+  WifiOff,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -15,7 +16,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
-  const { activeTab, exportDataJSON, currentUser, logout } = useApp();
+  const { activeTab, exportDataJSON, currentUser, logout, isOfflineMode } = useApp();
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
   // Realtime live clock (updates every second)
@@ -151,6 +152,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           <span>{currentUser?.username || 'User'}</span>
           <span className="opacity-60 text-[10px]">({currentUser?.role || 'Staff'})</span>
         </div>
+
+        {/* Offline Mode Badge */}
+        {isOfflineMode && (
+          <div
+            title="Database Supabase tidak terhubung atau sedang dijeda (paused). Data menggunakan penyimpanan lokal perangkat."
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 text-amber-700 border border-amber-500/30 text-xs font-bold"
+          >
+            <WifiOff className="w-3.5 h-3.5 text-amber-600" />
+            <span className="hidden sm:inline">Mode Offline</span>
+          </div>
+        )}
 
         {/* Backup button (Admin only) */}
         {isAdmin && (

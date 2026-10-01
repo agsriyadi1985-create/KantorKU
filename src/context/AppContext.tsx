@@ -36,6 +36,8 @@ interface AppContextType {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   isLoading: boolean;
+  isOfflineMode: boolean;
+  bypassLoading: () => void;
 
   // Company
   companyInfo: CompanyInfo;
@@ -252,6 +254,12 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const SESSION_STORAGE_KEY = 'kantorku_auth_session';
 const TASKS_STORAGE_KEY = 'kantorku_tasks_data';
 const TRANSAKSI_HARIAN_STORAGE_KEY = 'kantorku_transaksi_harian_data';
+const COMPANY_STORAGE_KEY = 'kantorku_company_info';
+const USERS_STORAGE_KEY = 'kantorku_users_data';
+const KARYAWAN_STORAGE_KEY = 'kantorku_karyawan_data';
+const KASBON_STORAGE_KEY = 'kantorku_kasbon_data';
+const GAJI_STORAGE_KEY = 'kantorku_gaji_data';
+const PENGELUARAN_STORAGE_KEY = 'kantorku_pengeluaran_data';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Current user state with local session persistence
@@ -266,21 +274,64 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(initialCompanyInfo);
-  const [userList, setUserList] = useState<User[]>([]);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(() => {
+    try {
+      const saved = localStorage.getItem(COMPANY_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : initialCompanyInfo;
+    } catch {
+      return initialCompanyInfo;
+    }
+  });
+  const [userList, setUserList] = useState<User[]>(() => {
+    try {
+      const saved = localStorage.getItem(USERS_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : initialUsers;
+    } catch {
+      return initialUsers;
+    }
+  });
   const [taskList, setTaskList] = useState<Task[]>(() => {
     try {
       const saved = localStorage.getItem(TASKS_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
+      return saved ? JSON.parse(saved) : initialTasks;
     } catch {
-      return [];
+      return initialTasks;
     }
   });
-  const [karyawanList, setKaryawanList] = useState<Karyawan[]>([]);
-  const [kasbonList, setKasbonList] = useState<Kasbon[]>([]);
-  const [gajiList, setGajiList] = useState<Gaji[]>([]);
-  const [pengeluaranList, setPengeluaranList] = useState<PengeluaranRutin[]>([]);
+  const [karyawanList, setKaryawanList] = useState<Karyawan[]>(() => {
+    try {
+      const saved = localStorage.getItem(KARYAWAN_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : initialKaryawan;
+    } catch {
+      return initialKaryawan;
+    }
+  });
+  const [kasbonList, setKasbonList] = useState<Kasbon[]>(() => {
+    try {
+      const saved = localStorage.getItem(KASBON_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : initialKasbon;
+    } catch {
+      return initialKasbon;
+    }
+  });
+  const [gajiList, setGajiList] = useState<Gaji[]>(() => {
+    try {
+      const saved = localStorage.getItem(GAJI_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : initialGaji;
+    } catch {
+      return initialGaji;
+    }
+  });
+  const [pengeluaranList, setPengeluaranList] = useState<PengeluaranRutin[]>(() => {
+    try {
+      const saved = localStorage.getItem(PENGELUARAN_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : initialPengeluaran;
+    } catch {
+      return initialPengeluaran;
+    }
+  });
   const [transaksiHarianList, setTransaksiHarianList] = useState<TransaksiHarian[]>(() => {
     try {
       const saved = localStorage.getItem(TRANSAKSI_HARIAN_STORAGE_KEY);
@@ -296,6 +347,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return [];
     }
   });
+
+  const bypassLoading = useCallback(() => {
+    setIsLoading(false);
+    setIsOfflineMode(true);
+  }, []);
 
   // ── Toast ──────────────────────────────────────────────────
   const addToast = useCallback((type: ToastMessage['type'], message: string) => {
@@ -346,50 +402,105 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const fetchUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase.from('app_users').select('*').order('created_at', { ascending: true });
-      if (!error && data) {
-        setUserList(data.map(r => mapUserFromDB(r as Record<string, unknown>)));
+      if (!error && data && data.length > 0) {
+        const mapped = data.map(r => mapUserFromDB(r as Record<string, unknown>));
+        setUserList(mapped);
+        try {
+          localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(mapped));
+        } catch {
+          // ignore
+        }
       } else {
-        // Fallback local initial users if table not ready yet
-        setUserList(initialUsers);
+        const saved = localStorage.getItem(USERS_STORAGE_KEY);
+        setUserList(saved ? JSON.parse(saved) : initialUsers);
       }
     } catch {
-      setUserList(initialUsers);
+      const saved = localStorage.getItem(USERS_STORAGE_KEY);
+      setUserList(saved ? JSON.parse(saved) : initialUsers);
     }
   }, []);
 
   const fetchCompany = useCallback(async () => {
     try {
-      const { data } = await supabase.from('company_info').select('*').limit(1).maybeSingle();
-      if (data) setCompanyInfo(mapCompanyInfoFromDB(data as Record<string, unknown>));
+      const { data, error } = await supabase.from('company_info').select('*').limit(1).maybeSingle();
+      if (!error && data) {
+        const mapped = mapCompanyInfoFromDB(data as Record<string, unknown>);
+        setCompanyInfo(mapped);
+        try {
+          localStorage.setItem(COMPANY_STORAGE_KEY, JSON.stringify(mapped));
+        } catch {
+          // ignore
+        }
+      } else {
+        const saved = localStorage.getItem(COMPANY_STORAGE_KEY);
+        if (saved) setCompanyInfo(JSON.parse(saved));
+      }
     } catch {
-      // keep initial
+      const saved = localStorage.getItem(COMPANY_STORAGE_KEY);
+      if (saved) setCompanyInfo(JSON.parse(saved));
     }
   }, []);
 
   const fetchKaryawan = useCallback(async () => {
     try {
       const { data, error } = await supabase.from('karyawan').select('*').order('created_at', { ascending: false });
-      if (!error && data) setKaryawanList(data.map(r => mapKaryawanFromDB(r as Record<string, unknown>)));
+      if (!error && data && data.length > 0) {
+        const mapped = data.map(r => mapKaryawanFromDB(r as Record<string, unknown>));
+        setKaryawanList(mapped);
+        try {
+          localStorage.setItem(KARYAWAN_STORAGE_KEY, JSON.stringify(mapped));
+        } catch {
+          // ignore
+        }
+      } else {
+        const saved = localStorage.getItem(KARYAWAN_STORAGE_KEY);
+        if (saved) setKaryawanList(JSON.parse(saved));
+      }
     } catch {
-      // ignore
+      const saved = localStorage.getItem(KARYAWAN_STORAGE_KEY);
+      if (saved) setKaryawanList(JSON.parse(saved));
     }
   }, []);
 
   const fetchKasbon = useCallback(async () => {
     try {
       const { data, error } = await supabase.from('kasbon').select('*').order('created_at', { ascending: false });
-      if (!error && data) setKasbonList(data.map(r => mapKasbonFromDB(r as Record<string, unknown>)));
+      if (!error && data && data.length > 0) {
+        const mapped = data.map(r => mapKasbonFromDB(r as Record<string, unknown>));
+        setKasbonList(mapped);
+        try {
+          localStorage.setItem(KASBON_STORAGE_KEY, JSON.stringify(mapped));
+        } catch {
+          // ignore
+        }
+      } else {
+        const saved = localStorage.getItem(KASBON_STORAGE_KEY);
+        if (saved) setKasbonList(JSON.parse(saved));
+      }
     } catch {
-      // ignore
+      const saved = localStorage.getItem(KASBON_STORAGE_KEY);
+      if (saved) setKasbonList(JSON.parse(saved));
     }
   }, []);
 
   const fetchGaji = useCallback(async () => {
     try {
       const { data, error } = await supabase.from('gaji').select('*').order('created_at', { ascending: false });
-      if (!error && data) setGajiList(data.map(r => mapGajiFromDB(r as Record<string, unknown>)));
+      if (!error && data && data.length > 0) {
+        const mapped = data.map(r => mapGajiFromDB(r as Record<string, unknown>));
+        setGajiList(mapped);
+        try {
+          localStorage.setItem(GAJI_STORAGE_KEY, JSON.stringify(mapped));
+        } catch {
+          // ignore
+        }
+      } else {
+        const saved = localStorage.getItem(GAJI_STORAGE_KEY);
+        if (saved) setGajiList(JSON.parse(saved));
+      }
     } catch {
-      // ignore
+      const saved = localStorage.getItem(GAJI_STORAGE_KEY);
+      if (saved) setGajiList(JSON.parse(saved));
     }
   }, []);
 
@@ -398,12 +509,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const { data, error } = await supabase.from('pengeluaran_rutin').select('*').order('created_at', { ascending: false });
       if (!error && data) {
         const mapped = data.map(r => mapPengeluaranFromDB(r as Record<string, unknown>));
-        // Hanya ambil pengeluaran rutin murni (nomor yang tidak diawali TRX-)
         const clean = mapped.filter(p => !p.nomorKwitansi.startsWith('TRX-') && !p.id.startsWith('peng-0') && !p.id.startsWith('dummy-'));
         setPengeluaranList(clean);
+        try {
+          localStorage.setItem(PENGELUARAN_STORAGE_KEY, JSON.stringify(clean));
+        } catch {
+          // ignore
+        }
+      } else {
+        const saved = localStorage.getItem(PENGELUARAN_STORAGE_KEY);
+        if (saved) setPengeluaranList(JSON.parse(saved));
       }
     } catch {
-      // ignore
+      const saved = localStorage.getItem(PENGELUARAN_STORAGE_KEY);
+      if (saved) setPengeluaranList(JSON.parse(saved));
     }
   }, []);
 
@@ -590,13 +709,51 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // ── Initial Load + Realtime Subscriptions ─────────────────
   useEffect(() => {
+    let isCancelled = false;
+
+    const loadLocalFallbacks = () => {
+      try {
+        const savedComp = localStorage.getItem(COMPANY_STORAGE_KEY);
+        if (savedComp) setCompanyInfo(JSON.parse(savedComp));
+
+        const savedUsers = localStorage.getItem(USERS_STORAGE_KEY);
+        setUserList(savedUsers ? JSON.parse(savedUsers) : initialUsers);
+
+        const savedKaryawan = localStorage.getItem(KARYAWAN_STORAGE_KEY);
+        if (savedKaryawan) setKaryawanList(JSON.parse(savedKaryawan));
+
+        const savedKasbon = localStorage.getItem(KASBON_STORAGE_KEY);
+        if (savedKasbon) setKasbonList(JSON.parse(savedKasbon));
+
+        const savedGaji = localStorage.getItem(GAJI_STORAGE_KEY);
+        if (savedGaji) setGajiList(JSON.parse(savedGaji));
+
+        const savedPengeluaran = localStorage.getItem(PENGELUARAN_STORAGE_KEY);
+        if (savedPengeluaran) setPengeluaranList(JSON.parse(savedPengeluaran));
+      } catch (err) {
+        console.warn('Error loading local fallbacks:', err);
+      }
+    };
+
     const init = async () => {
       setIsLoading(true);
-      try {
-        const [{ data: compData }, { data: usersData }] = await Promise.all([
-          supabase.from('company_info').select('*').limit(1),
-          supabase.from('app_users').select('*').limit(1),
-        ]);
+
+      const performSupabaseSync = async () => {
+        // Quick connection check: ping company_info
+        const { data: compData, error: compErr } = await supabase.from('company_info').select('*').limit(1);
+
+        if (compErr) {
+          console.warn('Supabase unreachable or paused:', compErr.message);
+          setIsOfflineMode(true);
+          loadLocalFallbacks();
+          return;
+        }
+
+        // Check app_users
+        const { data: usersData, error: usersErr } = await supabase.from('app_users').select('*').limit(1);
+        if (usersErr) {
+          console.warn('Supabase users table unreachable:', usersErr.message);
+        }
 
         // 1. Ensure company_info exists
         if (!compData || compData.length === 0) {
@@ -648,11 +805,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           fetchPengeluaran(),
           fetchTransaksiHarian(),
         ]);
+
+        setIsOfflineMode(false);
+      };
+
+      // Wrap with a strict 3000ms timeout!
+      const timeoutPromise = new Promise<'timeout'>((resolve) => {
+        setTimeout(() => resolve('timeout'), 3000);
+      });
+
+      try {
+        const result = await Promise.race([performSupabaseSync(), timeoutPromise]);
+        if (result === 'timeout') {
+          console.warn('Supabase initialization timed out (3s). Operating in offline/cached mode.');
+          setIsOfflineMode(true);
+          loadLocalFallbacks();
+        }
       } catch (err) {
         console.error('Init error:', err);
-        setUserList(initialUsers);
+        setIsOfflineMode(true);
+        loadLocalFallbacks();
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -675,25 +851,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     document.addEventListener('visibilitychange', handleSync);
 
     // Realtime Subscriptions
-    const channel = supabase
-      .channel('kantorku-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_users' }, () => { fetchUsers(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { fetchTasks(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'karyawan' }, () => { fetchKaryawan(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'kasbon' }, () => { fetchKasbon(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'gaji' }, () => { fetchGaji(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pengeluaran_rutin' }, () => {
-        fetchPengeluaran();
-        fetchTransaksiHarian();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'transaksi_harian' }, () => { fetchTransaksiHarian(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'company_info' }, () => { fetchCompany(); })
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel('kantorku-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'app_users' }, () => { fetchUsers(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { fetchTasks(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'karyawan' }, () => { fetchKaryawan(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'kasbon' }, () => { fetchKasbon(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'gaji' }, () => { fetchGaji(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'pengeluaran_rutin' }, () => {
+          fetchPengeluaran();
+          fetchTransaksiHarian();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transaksi_harian' }, () => { fetchTransaksiHarian(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'company_info' }, () => { fetchCompany(); })
+        .subscribe();
+    } catch (e) {
+      console.warn('Realtime channel error:', e);
+    }
 
     return () => {
+      isCancelled = true;
       window.removeEventListener('focus', handleSync);
       document.removeEventListener('visibilitychange', handleSync);
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {
+          // ignore
+        }
+      }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -728,11 +916,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       );
     };
 
-    // 1. Check Supabase DB first
+    // 1. Check Supabase DB first (with 2000ms timeout)
     try {
-      const { data, error } = await supabase
-        .from('app_users')
-        .select('*');
+      const fetchPromise = supabase.from('app_users').select('*');
+      const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) =>
+        setTimeout(() => reject(new Error('Auth request timeout')), 2000)
+      );
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (!error && data && data.length > 0) {
         const users = data.map(r => mapUserFromDB(r as Record<string, unknown>));
@@ -757,7 +947,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedUser));
             
             // Update last_login in DB asynchronously
-            supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', dbUser.id);
+            try {
+              supabase.from('app_users').update({ last_login: new Date().toISOString() }).eq('id', dbUser.id);
+            } catch {
+              // ignore
+            }
             
             addToast('success', `Selamat datang, ${matchedEmp?.nama || dbUser.nama}! (Role: ${dbUser.role})`);
             return { success: true };
@@ -767,11 +961,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
       }
     } catch (err) {
-      console.warn('Supabase auth fallback:', err);
+      console.warn('Supabase auth fallback to local credentials:', err);
     }
 
-    // 2. Fallback to local default users (AGUS, STAFF)
-    const localUser = initialUsers.find(u => 
+    // 2. Fallback to local default users (AGUS, STAFF, or cached users)
+    const activeUsers = userList.length > 0 ? userList : initialUsers;
+    const localUser = activeUsers.find(u => 
       u.username.toUpperCase() === cleanUser || 
       normalizeNIK(u.username) === normalizedInput
     );
@@ -797,7 +992,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (!employeeMatch) {
       try {
-        const { data: karyawanData } = await supabase.from('karyawan').select('*');
+        const fetchEmpPromise = supabase.from('karyawan').select('*');
+        const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) =>
+          setTimeout(() => reject(new Error('Karyawan request timeout')), 1500)
+        );
+        const { data: karyawanData } = await Promise.race([fetchEmpPromise, timeoutPromise]);
         if (karyawanData && karyawanData.length > 0) {
           const freshMatch = (karyawanData as Array<Record<string, unknown>>).find(
             k => normalizeNIK(k.nik as string) === normalizedInput
@@ -1169,13 +1368,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     const cleanData = Object.fromEntries(Object.entries(dbData).filter(([, v]) => v !== undefined));
 
-    if (existing) {
-      await supabase.from('company_info').update(cleanData).eq('id', existing.id);
-    } else {
-      await supabase.from('company_info').insert(cleanData);
+    try {
+      if (existing) {
+        await supabase.from('company_info').update(cleanData).eq('id', existing.id);
+      } else {
+        await supabase.from('company_info').insert(cleanData);
+      }
+    } catch {
+      // offline fallback
     }
 
-    setCompanyInfo(prev => ({ ...prev, ...info }));
+    setCompanyInfo(prev => {
+      const updated = { ...prev, ...info };
+      try { localStorage.setItem(COMPANY_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
     addToast('success', 'Profil kantor berhasil diperbarui');
   }, [addToast]);
 
@@ -1183,52 +1390,94 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // KARYAWAN
   // ============================================================
   const addKaryawan = useCallback(async (data: Omit<Karyawan, 'id'>) => {
-    const { data: result, error } = await supabase.from('karyawan').insert({
-      nik: data.nik, nama: data.nama, divisi: data.divisi, jabatan: data.jabatan,
-      status: data.status, email: data.email, no_hp: data.noHp, alamat: data.alamat,
-      tanggal_masuk: data.tanggalMasuk || null, gaji_pokok: data.gajiPokok,
-      tunjangan_makan: data.tunjanganMakan, tunjangan_transport: data.tunjanganTransport,
-      tunjangan_jabatan: data.tunjanganJabatan, nama_bank: data.namaBank,
-      no_rekening: data.noRekening, atas_nama_rekening: data.atasNamaRekening,
-      avatar_url: data.avatarUrl || null,
-    }).select().single();
+    const newId = generateId();
+    const fallbackEmp: Karyawan = { id: newId, ...data };
 
-    if (error) { addToast('error', `Gagal menambah karyawan: ${error.message}`); return; }
-    if (result) setKaryawanList(prev => [mapKaryawanFromDB(result as Record<string, unknown>), ...prev]);
-    addToast('success', `Karyawan ${data.nama} berhasil ditambahkan`);
+    try {
+      const { data: result, error } = await supabase.from('karyawan').insert({
+        nik: data.nik, nama: data.nama, divisi: data.divisi, jabatan: data.jabatan,
+        status: data.status, email: data.email, no_hp: data.noHp, alamat: data.alamat,
+        tanggal_masuk: data.tanggalMasuk || null, gaji_pokok: data.gajiPokok,
+        tunjangan_makan: data.tunjanganMakan, tunjangan_transport: data.tunjanganTransport,
+        tunjangan_jabatan: data.tunjanganJabatan, nama_bank: data.namaBank,
+        no_rekening: data.noRekening, atas_nama_rekening: data.atasNamaRekening,
+        avatar_url: data.avatarUrl || null,
+      }).select().single();
+
+      const savedEmp = (result && !error) ? mapKaryawanFromDB(result as Record<string, unknown>) : fallbackEmp;
+      setKaryawanList(prev => {
+        const updated = [savedEmp, ...prev.filter(k => k.id !== savedEmp.id)];
+        try { localStorage.setItem(KARYAWAN_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+
+      addToast('success', `Karyawan ${data.nama} berhasil ditambahkan`);
+    } catch {
+      setKaryawanList(prev => {
+        const updated = [fallbackEmp, ...prev];
+        try { localStorage.setItem(KARYAWAN_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      addToast('success', `Karyawan ${data.nama} berhasil ditambahkan (Disimpan Lokal)`);
+    }
   }, [addToast]);
 
   const updateKaryawan = useCallback(async (id: string, data: Partial<Karyawan>) => {
-    const updateData: Record<string, unknown> = {};
-    if (data.nik !== undefined) updateData.nik = data.nik;
-    if (data.nama !== undefined) updateData.nama = data.nama;
-    if (data.divisi !== undefined) updateData.divisi = data.divisi;
-    if (data.jabatan !== undefined) updateData.jabatan = data.jabatan;
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.email !== undefined) updateData.email = data.email;
-    if (data.noHp !== undefined) updateData.no_hp = data.noHp;
-    if (data.alamat !== undefined) updateData.alamat = data.alamat;
-    if (data.tanggalMasuk !== undefined) updateData.tanggal_masuk = data.tanggalMasuk || null;
-    if (data.gajiPokok !== undefined) updateData.gaji_pokok = data.gajiPokok;
-    if (data.tunjanganMakan !== undefined) updateData.tunjangan_makan = data.tunjanganMakan;
-    if (data.tunjanganTransport !== undefined) updateData.tunjangan_transport = data.tunjanganTransport;
-    if (data.tunjanganJabatan !== undefined) updateData.tunjangan_jabatan = data.tunjanganJabatan;
-    if (data.namaBank !== undefined) updateData.nama_bank = data.namaBank;
-    if (data.noRekening !== undefined) updateData.no_rekening = data.noRekening;
-    if (data.atasNamaRekening !== undefined) updateData.atas_nama_rekening = data.atasNamaRekening;
-    if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl || null;
+    try {
+      const updateData: Record<string, unknown> = {};
+      if (data.nik !== undefined) updateData.nik = data.nik;
+      if (data.nama !== undefined) updateData.nama = data.nama;
+      if (data.divisi !== undefined) updateData.divisi = data.divisi;
+      if (data.jabatan !== undefined) updateData.jabatan = data.jabatan;
+      if (data.status !== undefined) updateData.status = data.status;
+      if (data.email !== undefined) updateData.email = data.email;
+      if (data.noHp !== undefined) updateData.no_hp = data.noHp;
+      if (data.alamat !== undefined) updateData.alamat = data.alamat;
+      if (data.tanggalMasuk !== undefined) updateData.tanggal_masuk = data.tanggalMasuk || null;
+      if (data.gajiPokok !== undefined) updateData.gaji_pokok = data.gajiPokok;
+      if (data.tunjanganMakan !== undefined) updateData.tunjangan_makan = data.tunjanganMakan;
+      if (data.tunjanganTransport !== undefined) updateData.tunjangan_transport = data.tunjanganTransport;
+      if (data.tunjanganJabatan !== undefined) updateData.tunjangan_jabatan = data.tunjanganJabatan;
+      if (data.namaBank !== undefined) updateData.nama_bank = data.namaBank;
+      if (data.noRekening !== undefined) updateData.no_rekening = data.noRekening;
+      if (data.atasNamaRekening !== undefined) updateData.atas_nama_rekening = data.atasNamaRekening;
+      if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl || null;
 
-    const { data: result, error } = await supabase.from('karyawan').update(updateData).eq('id', id).select().single();
-    if (error) { addToast('error', `Gagal update: ${error.message}`); return; }
-    if (result) setKaryawanList(prev => prev.map(k => k.id === id ? mapKaryawanFromDB(result as Record<string, unknown>) : k));
-    addToast('success', 'Data karyawan berhasil diperbarui');
+      const { data: result } = await supabase.from('karyawan').update(updateData).eq('id', id).select().maybeSingle();
+
+      setKaryawanList(prev => {
+        const updated = prev.map(k => {
+          if (k.id === id) {
+            return result ? mapKaryawanFromDB(result as Record<string, unknown>) : { ...k, ...data };
+          }
+          return k;
+        });
+        try { localStorage.setItem(KARYAWAN_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      addToast('success', 'Data karyawan berhasil diperbarui');
+    } catch {
+      setKaryawanList(prev => {
+        const updated = prev.map(k => k.id === id ? { ...k, ...data } : k);
+        try { localStorage.setItem(KARYAWAN_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      addToast('success', 'Data karyawan berhasil diperbarui (Disimpan Lokal)');
+    }
   }, [addToast]);
 
   const deleteKaryawan = useCallback(async (id: string) => {
     const emp = karyawanList.find(k => k.id === id);
-    const { error } = await supabase.from('karyawan').delete().eq('id', id);
-    if (error) { addToast('error', `Gagal hapus: ${error.message}`); return; }
-    setKaryawanList(prev => prev.filter(k => k.id !== id));
+    try {
+      await supabase.from('karyawan').delete().eq('id', id);
+    } catch {
+      // ignore
+    }
+    setKaryawanList(prev => {
+      const updated = prev.filter(k => k.id !== id);
+      try { localStorage.setItem(KARYAWAN_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
     addToast('info', `Karyawan ${emp?.nama || ''} telah dihapus`);
   }, [karyawanList, addToast]);
 
@@ -1240,34 +1489,77 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addKasbon = useCallback(async (
     data: Omit<Kasbon, 'id' | 'nomorKasbon' | 'sisaPinjaman' | 'sudahDibayar' | 'status' | 'riwayatPembayaran'>
   ) => {
-    const { count } = await supabase.from('kasbon').select('*', { count: 'exact', head: true });
-    const nomorKasbon = generateKodeKasbon(count || 0);
+    const nomorKasbon = generateKodeKasbon(kasbonList.length);
+    const newId = generateId();
+    const fallbackKb: Kasbon = {
+      id: newId,
+      karyawanId: data.karyawanId,
+      nomorKasbon,
+      tanggalPinjam: data.tanggalPinjam,
+      jumlahPinjaman: data.jumlahPinjaman,
+      skema: data.skema,
+      tenorBulan: data.tenorBulan,
+      cicilanPerBulan: data.cicilanPerBulan,
+      sisaPinjaman: data.jumlahPinjaman,
+      sudahDibayar: 0,
+      periodeMulai: data.periodeMulai,
+      keterangan: data.keterangan,
+      status: 'Aktif',
+      riwayatPembayaran: [],
+    };
 
-    const { data: result, error } = await supabase.from('kasbon').insert({
-      karyawan_id: data.karyawanId, nomor_kasbon: nomorKasbon,
-      tanggal_pinjam: data.tanggalPinjam, jumlah_pinjaman: data.jumlahPinjaman,
-      skema: data.skema, tenor_bulan: data.tenorBulan,
-      cicilan_per_bulan: data.cicilanPerBulan, sisa_pinjaman: data.jumlahPinjaman,
-      sudah_dibayar: 0, periode_mulai: data.periodeMulai,
-      keterangan: data.keterangan, status: 'Aktif', riwayat_pembayaran: [],
-    }).select().single();
+    try {
+      const { data: result } = await supabase.from('kasbon').insert({
+        karyawan_id: data.karyawanId, nomor_kasbon: nomorKasbon,
+        tanggal_pinjam: data.tanggalPinjam, jumlah_pinjaman: data.jumlahPinjaman,
+        skema: data.skema, tenor_bulan: data.tenorBulan,
+        cicilan_per_bulan: data.cicilanPerBulan, sisa_pinjaman: data.jumlahPinjaman,
+        sudah_dibayar: 0, periode_mulai: data.periodeMulai,
+        keterangan: data.keterangan, status: 'Aktif', riwayat_pembayaran: [],
+      }).select().maybeSingle();
 
-    if (error) { addToast('error', `Gagal catat kasbon: ${error.message}`); return; }
-    if (result) setKasbonList(prev => [mapKasbonFromDB(result as Record<string, unknown>), ...prev]);
-    addToast('success', `Kasbon ${nomorKasbon} berhasil dicatat`);
-  }, [addToast]);
+      const finalKb = result ? mapKasbonFromDB(result as Record<string, unknown>) : fallbackKb;
+      setKasbonList(prev => {
+        const updated = [finalKb, ...prev];
+        try { localStorage.setItem(KASBON_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      addToast('success', `Kasbon ${nomorKasbon} berhasil dicatat`);
+    } catch {
+      setKasbonList(prev => {
+        const updated = [fallbackKb, ...prev];
+        try { localStorage.setItem(KASBON_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      addToast('success', `Kasbon ${nomorKasbon} berhasil dicatat (Disimpan Lokal)`);
+    }
+  }, [kasbonList.length, addToast]);
 
   const updateKasbon = useCallback(async (id: string, data: Partial<Kasbon>) => {
-    const { error } = await supabase.from('kasbon').update(data).eq('id', id);
-    if (error) { addToast('error', `Gagal update kasbon: ${error.message}`); return; }
-    await fetchKasbon();
+    try {
+      await supabase.from('kasbon').update(data).eq('id', id);
+    } catch {
+      // ignore
+    }
+    setKasbonList(prev => {
+      const updated = prev.map(k => k.id === id ? { ...k, ...data } : k);
+      try { localStorage.setItem(KASBON_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
     addToast('success', 'Data kasbon diperbarui');
-  }, [addToast, fetchKasbon]);
+  }, [addToast]);
 
   const deleteKasbon = useCallback(async (id: string) => {
-    const { error } = await supabase.from('kasbon').delete().eq('id', id);
-    if (error) { addToast('error', `Gagal hapus kasbon: ${error.message}`); return; }
-    setKasbonList(prev => prev.filter(k => k.id !== id));
+    try {
+      await supabase.from('kasbon').delete().eq('id', id);
+    } catch {
+      // ignore
+    }
+    setKasbonList(prev => {
+      const updated = prev.filter(k => k.id !== id);
+      try { localStorage.setItem(KASBON_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
     addToast('info', 'Data kasbon telah dihapus');
   }, [addToast]);
 
@@ -1292,15 +1584,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       },
     ];
 
-    const { data: result, error } = await supabase.from('kasbon').update({
-      sudah_dibayar: newSudahDibayar,
-      sisa_pinjaman: newSisa,
-      status: newStatus,
-      riwayat_pembayaran: newRiwayat,
-    }).eq('id', id).select().single();
+    try {
+      await supabase.from('kasbon').update({
+        sudah_dibayar: newSudahDibayar,
+        sisa_pinjaman: newSisa,
+        status: newStatus,
+        riwayat_pembayaran: newRiwayat,
+      }).eq('id', id);
+    } catch {
+      // ignore
+    }
 
-    if (error) { addToast('error', `Gagal catat bayar: ${error.message}`); return; }
-    if (result) setKasbonList(prev => prev.map(k => k.id === id ? mapKasbonFromDB(result as Record<string, unknown>) : k));
+    setKasbonList(prev => {
+      const updated = prev.map(k => k.id === id ? {
+        ...k,
+        sudahDibayar: newSudahDibayar,
+        sisaPinjaman: newSisa,
+        status: newStatus,
+        riwayatPembayaran: newRiwayat,
+      } : k);
+      try { localStorage.setItem(KASBON_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
     addToast('success', 'Pembayaran kasbon berhasil dicatat');
   }, [kasbonList, addToast]);
 
@@ -1348,58 +1653,100 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [kasbonList]);
 
   const addGaji = useCallback(async (data: Omit<Gaji, 'id' | 'nomorSlip' | 'tanggalCetak'>): Promise<Gaji | null> => {
-    const { count } = await supabase.from('gaji').select('*', { count: 'exact', head: true });
-    const nomorSlip = generateKodeSlip(data.periodeTahun, data.periodeBulan, count || 0);
+    const nomorSlip = generateKodeSlip(data.periodeTahun, data.periodeBulan, gajiList.length);
     const today = new Date().toISOString().split('T')[0];
-
-    const { data: result, error } = await supabase.from('gaji').insert({
-      nomor_slip: nomorSlip,
-      karyawan_id: data.karyawanId,
-      periode_bulan: data.periodeBulan, periode_tahun: data.periodeTahun,
-      tanggal_cetak: today, tanggal_bayar: data.tanggalBayar || null,
+    const newId = generateId();
+    const fallbackGaji: Gaji = {
+      id: newId,
+      nomorSlip,
+      karyawanId: data.karyawanId,
+      periodeBulan: data.periodeBulan,
+      periodeTahun: data.periodeTahun,
+      tanggalCetak: today,
+      tanggalBayar: data.tanggalBayar,
       status: data.status,
-      p_gaji_pokok: data.pendapatan.gajiPokok,
-      p_tunjangan_makan: data.pendapatan.tunjanganMakan,
-      p_tunjangan_transport: data.pendapatan.tunjanganTransport,
-      p_tunjangan_jabatan: data.pendapatan.tunjanganJabatan,
-      p_lembur: data.pendapatan.lembur, p_bonus_kinerja: data.pendapatan.bonusKinerja,
-      p_tunjangan_lain: data.pendapatan.tunjanganLain,
-      p_ket_tunjangan_lain: data.pendapatan.ketTunjanganLain || null,
-      pot_kasbon: data.potongan.kasbon,
-      pot_kasbon_id: data.potongan.kasbonId || null,
-      pot_bpjs_kesehatan: data.potongan.bpjsKesehatan,
-      pot_bpjs_ketenagakerjaan: data.potongan.bpjsKetenagakerjaan,
-      pot_pph21: data.potongan.pph21, pot_potongan_absen: data.potongan.potonganAbsen,
-      pot_potongan_lain: data.potongan.potonganLain,
-      pot_ket_potongan_lain: data.potongan.ketPotonganLain || null,
-      total_pendapatan: data.totalPendapatan, total_potongan: data.totalPotongan,
-      gaji_bersih: data.gajiBersih, catatan: data.catatan || null,
-    }).select().single();
+      pendapatan: data.pendapatan,
+      potongan: data.potongan,
+      totalPendapatan: data.totalPendapatan,
+      totalPotongan: data.totalPotongan,
+      gajiBersih: data.gajiBersih,
+      catatan: data.catatan,
+    };
 
-    if (error) { addToast('error', `Gagal buat slip: ${error.message}`); return null; }
-    if (!result) return null;
+    try {
+      const { data: result } = await supabase.from('gaji').insert({
+        nomor_slip: nomorSlip,
+        karyawan_id: data.karyawanId,
+        periode_bulan: data.periodeBulan, periode_tahun: data.periodeTahun,
+        tanggal_cetak: today, tanggal_bayar: data.tanggalBayar || null,
+        status: data.status,
+        p_gaji_pokok: data.pendapatan.gajiPokok,
+        p_tunjangan_makan: data.pendapatan.tunjanganMakan,
+        p_tunjangan_transport: data.pendapatan.tunjanganTransport,
+        p_tunjangan_jabatan: data.pendapatan.tunjanganJabatan,
+        p_lembur: data.pendapatan.lembur, p_bonus_kinerja: data.pendapatan.bonusKinerja,
+        p_tunjangan_lain: data.pendapatan.tunjanganLain,
+        p_ket_tunjangan_lain: data.pendapatan.ketTunjanganLain || null,
+        pot_kasbon: data.potongan.kasbon,
+        pot_kasbon_id: data.potongan.kasbonId || null,
+        pot_bpjs_kesehatan: data.potongan.bpjsKesehatan,
+        pot_bpjs_ketenagakerjaan: data.potongan.bpjsKetenagakerjaan,
+        pot_pph21: data.potongan.pph21, pot_potongan_absen: data.potongan.potonganAbsen,
+        pot_potongan_lain: data.potongan.potonganLain,
+        pot_ket_potongan_lain: data.potongan.ketPotonganLain || null,
+        total_pendapatan: data.totalPendapatan, total_potongan: data.totalPotongan,
+        gaji_bersih: data.gajiBersih, catatan: data.catatan || null,
+      }).select().maybeSingle();
 
-    const newGaji = mapGajiFromDB(result as Record<string, unknown>);
-    setGajiList(prev => [newGaji, ...prev]);
+      const newGaji = result ? mapGajiFromDB(result as Record<string, unknown>) : fallbackGaji;
+      setGajiList(prev => {
+        const updated = [newGaji, ...prev];
+        try { localStorage.setItem(GAJI_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
 
-    if (data.status === 'Dibayar' && data.potongan.kasbon > 0 && data.potongan.kasbonId) {
-      await applyKasbonDeductionDB(data.potongan.kasbonId, data.potongan.kasbon, newGaji.id, data.periodeBulan, data.periodeTahun);
+      if (data.status === 'Dibayar' && data.potongan.kasbon > 0 && data.potongan.kasbonId) {
+        await applyKasbonDeductionDB(data.potongan.kasbonId, data.potongan.kasbon, newGaji.id, data.periodeBulan, data.periodeTahun);
+      }
+
+      addToast('success', `Slip gaji ${nomorSlip} berhasil diterbitkan`);
+      return newGaji;
+    } catch {
+      setGajiList(prev => {
+        const updated = [fallbackGaji, ...prev];
+        try { localStorage.setItem(GAJI_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      addToast('success', `Slip gaji ${nomorSlip} berhasil diterbitkan (Disimpan Lokal)`);
+      return fallbackGaji;
     }
-
-    addToast('success', `Slip gaji ${nomorSlip} berhasil diterbitkan`);
-    return newGaji;
-  }, [addToast, applyKasbonDeductionDB]);
+  }, [gajiList.length, addToast, applyKasbonDeductionDB]);
 
   const updateGaji = useCallback(async (id: string, data: Partial<Gaji>) => {
-    const { error } = await supabase.from('gaji').update({ status: data.status, tanggal_bayar: data.tanggalBayar }).eq('id', id);
-    if (error) { addToast('error', `Gagal update slip: ${error.message}`); return; }
-    await fetchGaji();
-  }, [addToast, fetchGaji]);
+    try {
+      await supabase.from('gaji').update({ status: data.status, tanggal_bayar: data.tanggalBayar }).eq('id', id);
+    } catch {
+      // ignore
+    }
+    setGajiList(prev => {
+      const updated = prev.map(g => g.id === id ? { ...g, ...data } : g);
+      try { localStorage.setItem(GAJI_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    addToast('success', 'Status slip gaji diperbarui');
+  }, [addToast]);
 
   const deleteGaji = useCallback(async (id: string) => {
-    const { error } = await supabase.from('gaji').delete().eq('id', id);
-    if (error) { addToast('error', `Gagal hapus slip: ${error.message}`); return; }
-    setGajiList(prev => prev.filter(g => g.id !== id));
+    try {
+      await supabase.from('gaji').delete().eq('id', id);
+    } catch {
+      // ignore
+    }
+    setGajiList(prev => {
+      const updated = prev.filter(g => g.id !== id);
+      try { localStorage.setItem(GAJI_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
     addToast('info', 'Slip gaji telah dihapus');
   }, [addToast]);
 
@@ -1408,12 +1755,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const gaji = gajiList.find(g => g.id === id);
     if (!gaji) return;
 
-    const { data: result, error } = await supabase.from('gaji').update({
-      status: 'Dibayar', tanggal_bayar: today,
-    }).eq('id', id).select().single();
+    try {
+      await supabase.from('gaji').update({
+        status: 'Dibayar', tanggal_bayar: today,
+      }).eq('id', id);
+    } catch {
+      // ignore
+    }
 
-    if (error) { addToast('error', `Gagal ubah status: ${error.message}`); return; }
-    if (result) setGajiList(prev => prev.map(g => g.id === id ? mapGajiFromDB(result as Record<string, unknown>) : g));
+    setGajiList(prev => {
+      const updated = prev.map(g => g.id === id ? { ...g, status: 'Dibayar' as StatusGaji, tanggalBayar: today } : g);
+      try { localStorage.setItem(GAJI_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
 
     if (gaji.potongan.kasbon > 0 && gaji.potongan.kasbonId) {
       await applyKasbonDeductionDB(gaji.potongan.kasbonId, gaji.potongan.kasbon, id, gaji.periodeBulan, gaji.periodeTahun);
@@ -1429,46 +1783,84 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // PENGELUARAN
   // ============================================================
   const addPengeluaran = useCallback(async (data: Omit<PengeluaranRutin, 'id' | 'nomorKwitansi'>): Promise<PengeluaranRutin | null> => {
-    const { count } = await supabase.from('pengeluaran_rutin').select('*', { count: 'exact', head: true });
-    const nomorKwitansi = generateKodeKwitansi(count || 0);
+    const nomorKwitansi = generateKodeKwitansi(pengeluaranList.length);
+    const newId = generateId();
+    const fallbackPeng: PengeluaranRutin = {
+      id: newId,
+      nomorKwitansi,
+      tanggal: data.tanggal,
+      kategori: data.kategori,
+      nominal: data.nominal,
+      metodeBayar: data.metodeBayar,
+      dibayarkanKepada: data.dibayarkanKepada,
+      petugas: data.petugas,
+      keperluan: data.keperluan,
+      catatan: data.catatan || '',
+    };
 
-    const { data: result, error } = await supabase.from('pengeluaran_rutin').insert({
-      nomor_kwitansi: nomorKwitansi, tanggal: data.tanggal, kategori: data.kategori,
-      nominal: data.nominal, metode_bayar: data.metodeBayar,
-      dibayarkan_kepada: data.dibayarkanKepada, petugas: data.petugas,
-      keperluan: data.keperluan, catatan: data.catatan || '',
-    }).select().single();
+    try {
+      const { data: result } = await supabase.from('pengeluaran_rutin').insert({
+        nomor_kwitansi: nomorKwitansi, tanggal: data.tanggal, kategori: data.kategori,
+        nominal: data.nominal, metode_bayar: data.metodeBayar,
+        dibayarkan_kepada: data.dibayarkanKepada, petugas: data.petugas,
+        keperluan: data.keperluan, catatan: data.catatan || '',
+      }).select().maybeSingle();
 
-    if (error) { addToast('error', `Gagal catat pengeluaran: ${error.message}`); return null; }
-    if (!result) return null;
-
-    const newPengeluaran = mapPengeluaranFromDB(result as Record<string, unknown>);
-    setPengeluaranList(prev => [newPengeluaran, ...prev]);
-    addToast('success', `Pengeluaran ${nomorKwitansi} berhasil dicatat`);
-    return newPengeluaran;
-  }, [addToast]);
+      const newPengeluaran = result ? mapPengeluaranFromDB(result as Record<string, unknown>) : fallbackPeng;
+      setPengeluaranList(prev => {
+        const updated = [newPengeluaran, ...prev];
+        try { localStorage.setItem(PENGELUARAN_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      addToast('success', `Pengeluaran ${nomorKwitansi} berhasil dicatat`);
+      return newPengeluaran;
+    } catch {
+      setPengeluaranList(prev => {
+        const updated = [fallbackPeng, ...prev];
+        try { localStorage.setItem(PENGELUARAN_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      addToast('success', `Pengeluaran ${nomorKwitansi} berhasil dicatat (Disimpan Lokal)`);
+      return fallbackPeng;
+    }
+  }, [pengeluaranList.length, addToast]);
 
   const updatePengeluaran = useCallback(async (id: string, data: Partial<PengeluaranRutin>) => {
-    const updateData: Record<string, unknown> = {};
-    if (data.tanggal !== undefined) updateData.tanggal = data.tanggal;
-    if (data.kategori !== undefined) updateData.kategori = data.kategori;
-    if (data.nominal !== undefined) updateData.nominal = data.nominal;
-    if (data.metodeBayar !== undefined) updateData.metode_bayar = data.metodeBayar;
-    if (data.dibayarkanKepada !== undefined) updateData.dibayarkan_kepada = data.dibayarkanKepada;
-    if (data.petugas !== undefined) updateData.petugas = data.petugas;
-    if (data.keperluan !== undefined) updateData.keperluan = data.keperluan;
-    if (data.catatan !== undefined) updateData.catatan = data.catatan;
+    try {
+      const updateData: Record<string, unknown> = {};
+      if (data.tanggal !== undefined) updateData.tanggal = data.tanggal;
+      if (data.kategori !== undefined) updateData.kategori = data.kategori;
+      if (data.nominal !== undefined) updateData.nominal = data.nominal;
+      if (data.metodeBayar !== undefined) updateData.metode_bayar = data.metodeBayar;
+      if (data.dibayarkanKepada !== undefined) updateData.dibayarkan_kepada = data.dibayarkanKepada;
+      if (data.petugas !== undefined) updateData.petugas = data.petugas;
+      if (data.keperluan !== undefined) updateData.keperluan = data.keperluan;
+      if (data.catatan !== undefined) updateData.catatan = data.catatan;
 
-    const { data: result, error } = await supabase.from('pengeluaran_rutin').update(updateData).eq('id', id).select().single();
-    if (error) { addToast('error', `Gagal update: ${error.message}`); return; }
-    if (result) setPengeluaranList(prev => prev.map(p => p.id === id ? mapPengeluaranFromDB(result as Record<string, unknown>) : p));
+      await supabase.from('pengeluaran_rutin').update(updateData).eq('id', id);
+    } catch {
+      // ignore
+    }
+
+    setPengeluaranList(prev => {
+      const updated = prev.map(p => p.id === id ? { ...p, ...data } : p);
+      try { localStorage.setItem(PENGELUARAN_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
     addToast('success', 'Data pengeluaran berhasil diperbarui');
   }, [addToast]);
 
   const deletePengeluaran = useCallback(async (id: string) => {
-    const { error } = await supabase.from('pengeluaran_rutin').delete().eq('id', id);
-    if (error) { addToast('error', `Gagal hapus: ${error.message}`); return; }
-    setPengeluaranList(prev => prev.filter(p => p.id !== id));
+    try {
+      await supabase.from('pengeluaran_rutin').delete().eq('id', id);
+    } catch {
+      // ignore
+    }
+    setPengeluaranList(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      try { localStorage.setItem(PENGELUARAN_STORAGE_KEY, JSON.stringify(updated)); } catch {}
+      return updated;
+    });
     addToast('info', 'Transaksi pengeluaran telah dihapus');
   }, [addToast]);
 
@@ -1650,29 +2042,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // BACKUP / RESTORE / RESET
   // ============================================================
   const exportDataJSON = useCallback(async () => {
-    const [compRes, karRes, kbRes, gajiRes, pengRes, taskRes, trxRes] = await Promise.all([
-      supabase.from('company_info').select('*').limit(1).maybeSingle(),
-      supabase.from('karyawan').select('*'),
-      supabase.from('kasbon').select('*'),
-      supabase.from('gaji').select('*'),
-      supabase.from('pengeluaran_rutin').select('*'),
-      supabase.from('tasks').select('*'),
-      supabase.from('transaksi_harian').select('*'),
-    ]);
+    let backupData;
+    try {
+      const [compRes, karRes, kbRes, gajiRes, pengRes, taskRes, trxRes] = await Promise.all([
+        supabase.from('company_info').select('*').limit(1).maybeSingle(),
+        supabase.from('karyawan').select('*'),
+        supabase.from('kasbon').select('*'),
+        supabase.from('gaji').select('*'),
+        supabase.from('pengeluaran_rutin').select('*'),
+        supabase.from('tasks').select('*'),
+        supabase.from('transaksi_harian').select('*'),
+      ]);
 
-    const backupData = {
-      version: '2.3-supabase',
-      exportedAt: new Date().toISOString(),
-      companyInfo: compRes.data ? mapCompanyInfoFromDB(compRes.data as Record<string, unknown>) : companyInfo,
-      taskList: (taskRes.data || []).map(r => mapTaskFromDB(r as Record<string, unknown>)),
-      karyawanList: (karRes.data || []).map(r => mapKaryawanFromDB(r as Record<string, unknown>)),
-      kasbonList: (kbRes.data || []).map(r => mapKasbonFromDB(r as Record<string, unknown>)),
-      gajiList: (gajiRes.data || []).map(r => mapGajiFromDB(r as Record<string, unknown>)),
-      pengeluaranList: (pengRes.data || []).map(r => mapPengeluaranFromDB(r as Record<string, unknown>)),
-      transaksiHarianList: trxRes.data && trxRes.data.length > 0
-        ? (trxRes.data || []).map(r => mapTransaksiHarianFromDB(r as Record<string, unknown>))
-        : transaksiHarianList,
-    };
+      backupData = {
+        version: '2.3-supabase',
+        exportedAt: new Date().toISOString(),
+        companyInfo: compRes.data ? mapCompanyInfoFromDB(compRes.data as Record<string, unknown>) : companyInfo,
+        taskList: (taskRes.data || []).length > 0 ? (taskRes.data || []).map(r => mapTaskFromDB(r as Record<string, unknown>)) : taskList,
+        karyawanList: (karRes.data || []).length > 0 ? (karRes.data || []).map(r => mapKaryawanFromDB(r as Record<string, unknown>)) : karyawanList,
+        kasbonList: (kbRes.data || []).length > 0 ? (kbRes.data || []).map(r => mapKasbonFromDB(r as Record<string, unknown>)) : kasbonList,
+        gajiList: (gajiRes.data || []).length > 0 ? (gajiRes.data || []).map(r => mapGajiFromDB(r as Record<string, unknown>)) : gajiList,
+        pengeluaranList: (pengRes.data || []).length > 0 ? (pengRes.data || []).map(r => mapPengeluaranFromDB(r as Record<string, unknown>)) : pengeluaranList,
+        transaksiHarianList: (trxRes.data || []).length > 0
+          ? (trxRes.data || []).map(r => mapTransaksiHarianFromDB(r as Record<string, unknown>))
+          : transaksiHarianList,
+      };
+    } catch {
+      backupData = {
+        version: '2.3-local',
+        exportedAt: new Date().toISOString(),
+        companyInfo,
+        taskList,
+        karyawanList,
+        kasbonList,
+        gajiList,
+        pengeluaranList,
+        transaksiHarianList,
+      };
+    }
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1682,7 +2089,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     a.click();
     URL.revokeObjectURL(url);
     addToast('success', 'Backup data berhasil diunduh');
-  }, [companyInfo, transaksiHarianList, addToast]);
+  }, [companyInfo, taskList, karyawanList, kasbonList, gajiList, pengeluaranList, transaksiHarianList, addToast]);
 
   const importDataJSON = useCallback(async (_jsonString: string): Promise<boolean> => {
     addToast('info', 'Fitur import sedang dalam pengembangan untuk versi Supabase');
@@ -1727,7 +2134,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <AppContext.Provider value={{
       currentUser, login, logout, userList, addUser, updateUser, deleteUser,
-      activeTab, setActiveTab, isLoading,
+      activeTab, setActiveTab, isLoading, isOfflineMode, bypassLoading,
       companyInfo, updateCompanyInfo,
       taskList, fetchTasks, addTask, updateTask, updateTaskStatus, deleteTask, clearAllTasks,
       karyawanList, addKaryawan, updateKaryawan, deleteKaryawan, getKaryawanById,
